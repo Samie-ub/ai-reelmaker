@@ -1,9 +1,10 @@
-import { AlignCenter, AlignLeft, Check, ChevronDown, Download, Pause, Play, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { AlignCenter, AlignLeft, Check, ChevronDown, Download, LoaderCircle, Pause, Play, RotateCcw, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { navigate } from '../../navigation';
 import { createProject, getTemplate, projectSchema, templates, type ReelProject } from '../../domain/project';
 import { projectRepository } from '../../infrastructure/projectRepository';
+import { generateReelSuggestion } from '../../infrastructure/ollamaReelGenerator';
 import { Logo } from '../../ui/Logo';
 import { TemplateArtwork } from '../../ui/TemplateArtwork';
 import { ReelComposition } from '../../video/ReelComposition';
@@ -21,6 +22,8 @@ export function EditorScreen({ templateId }: { templateId: string }) {
   const [frame, setFrame] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiState, setAiState] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ status: 'idle' });
   const playerRef = useRef<PlayerRef>(null);
   const resetDialogRef = useRef<HTMLDialogElement>(null);
 
@@ -63,6 +66,18 @@ export function EditorScreen({ templateId }: { templateId: string }) {
   const switchTemplate = (id: string) => { const next = getTemplate(id); if (next) { setProject(createProject(next)); navigate(`/editor/${next.id}`); } };
   const totalFrames = project.duration * 30;
   const reset = () => { setProject(createProject(template)); setResetOpen(false); playerRef.current?.seekTo(0); };
+  const generateWithAi = async () => {
+    if (!aiPrompt.trim() || aiState.status === 'loading') return;
+    setAiState({ status: 'loading' });
+    try {
+      const suggestion = await generateReelSuggestion(aiPrompt, project.templateId);
+      setProject((current) => current ? { ...current, ...suggestion, updatedAt: Date.now() } : current);
+      playerRef.current?.seekTo(0);
+      setAiState({ status: 'success', message: 'AI direction applied. Review and edit anything before exporting.' });
+    } catch (error) {
+      setAiState({ status: 'error', message: error instanceof Error ? error.message : 'Could not generate this reel.' });
+    }
+  };
 
   return (
     <div className="editor-shell">
@@ -110,6 +125,24 @@ export function EditorScreen({ templateId }: { templateId: string }) {
 
         <aside className="properties-panel" aria-label="Template controls">
           <div className="panel-heading"><span className="eyebrow"><SlidersHorizontal size={14} /> Properties</span></div>
+          <div className="property-group ai-generator">
+            <label htmlFor="ai-prompt"><span><Sparkles size={14} /> AI create</span><small>Local</small></label>
+            <textarea
+              id="ai-prompt"
+              rows={4}
+              maxLength={400}
+              placeholder="Example: Announce a late-night coffee launch with bold, energetic copy."
+              value={aiPrompt}
+              disabled={aiState.status === 'loading'}
+              onChange={(event) => { setAiPrompt(event.target.value); setAiState({ status: 'idle' }); }}
+            />
+            <button className="button ai-generate-button" disabled={!aiPrompt.trim() || aiState.status === 'loading'} onClick={generateWithAi}>
+              {aiState.status === 'loading' ? <><LoaderCircle className="spin-inline" size={15} /> Creating…</> : <><Sparkles size={15} /> Create with Llama 3.2</>}
+            </button>
+            <div className={`ai-status ${aiState.status}`} role="status" aria-live="polite">
+              {aiState.status === 'loading' ? 'Generating copy, color, alignment, and timing locally…' : aiState.message}
+            </div>
+          </div>
           <div className="property-group">
             <label htmlFor="headline">Headline <span>{project.title.length}/72</span></label>
             <textarea id="headline" rows={3} value={project.title} aria-invalid={Boolean(issues.title)} aria-describedby={issues.title ? 'headline-error' : undefined} onChange={(event) => change('title', event.target.value)} />

@@ -23,7 +23,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 
 - **Assumption:** the first release is local-first and single-user; drafts live in browser storage.
 - **Assumption:** 1080×1920, 30fps, and 6–30 seconds cover the initial use case.
-- **Assumption:** text-led motion templates are sufficient to validate usefulness before uploads and audio licensing are introduced.
+- **Assumption:** text-led motion templates with optional local AI creative direction are sufficient to validate usefulness before uploads and audio licensing are introduced.
 - **Question:** is MP4 mandatory at launch, or is standards-compliant WebM acceptable for initial validation?
 - **Question:** which browsers and export codecs must be officially supported?
 - **Question:** will customer-supplied media be processed locally or uploaded in the future?
@@ -47,6 +47,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 4. Play or scrub the exact 9:16 Remotion preview and inspect the timeline.
 5. Export a WebM locally, or download the project JSON for portability.
 6. Recover the latest valid draft after refresh.
+7. Optionally turn a natural-language brief into validated, editable template settings using a locally installed Llama model.
 
 ### In scope
 
@@ -55,13 +56,14 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - Remotion composition and player using shared typed project data.
 - Local draft persistence with schema validation and stale/corrupt-state recovery.
 - Real local WebM export with feature detection, progress, cancellation, and failure states.
+- Optional local Ollama assistance for template copy, accent, alignment, and duration, with strict schema validation and no generated executable code.
 - Accessible keyboard navigation, focus visibility, dialog focus management, labels, reduced motion, and 44px primary touch targets.
 - Strict type checking, linting, unit/integration tests, and production build.
 
 ### Out of scope
 
 - Accounts, teams, billing, analytics, comments, cloud sync, and cloud storage.
-- Uploaded image/video/audio assets, licensed stock media, AI generation, captions/transcription, and social publishing.
+- Uploaded image/video/audio assets, licensed stock media, generative image/video models, captions/transcription, and social publishing.
 - Multi-track nonlinear editing, transitions marketplace, keyframes, or arbitrary scene graphs.
 - Server MP4 rendering, render queues, notifications, and durable render history.
 
@@ -114,7 +116,7 @@ Data flows from immutable templates into a validated `ReelProject`. The editor o
 - Trust boundaries: URL template identifiers, localStorage JSON, user text, browser media APIs, and downloaded filenames.
 - Zod rejects malformed or stale persisted state; unknown template IDs fall back to a safe library route.
 - Text is length constrained and rendered without HTML injection. Export names are sanitized.
-- No secrets, remote calls, cookies, tracking, or uploads exist in this release.
+- No secrets, cloud calls, cookies, tracking, or uploads exist in this release. Optional AI requests go only to the user's loopback Ollama service.
 - Export is explicitly initiated, cancellable, and only creates an object URL for the generated file; URLs are revoked after use.
 - CSP should be set by the deployment host (`default-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; worker-src 'self' blob:`) and tightened if font/assets move off inline styling.
 
