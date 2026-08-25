@@ -8,7 +8,7 @@ import type { TemplateId } from '../domain/project';
 
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434';
 const MODEL = 'llama3.2:latest';
-const REQUEST_TIMEOUT_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 90_000;
 
 const ollamaResponseSchema = z.object({
   message: z.object({ content: z.string() }),
@@ -31,8 +31,10 @@ const createPrompt = (brief: string, templateId: TemplateId) => `
 You are the creative director for a vertical 9:16 motion graphic.
 ${templateGuidance[templateId]}
 
-Turn the user's brief into polished on-screen copy and art direction for this exact template.
-Keep the headline punchy and readable. Use at most one newline in the headline.
+Turn the user's brief into a coherent sequence of 2 to 5 scenes unless one scene clearly works better.
+Every scene is independently editable, so set its copy, duration, palette, alignment, and entrance animation.
+Build a progression: hook, develop the idea, and finish with the payoff or call to action.
+Keep every headline punchy and readable. Use at most one newline in a headline.
 Do not use markdown, hashtags, quotation marks around fields, or instructions to the user.
 Return only data matching the supplied JSON schema.
 
@@ -60,7 +62,7 @@ export async function generateReelSuggestion(
         stream: false,
         format: aiReelSuggestionJsonSchema,
         messages: [{ role: 'user', content: createPrompt(brief, templateId) }],
-        options: { temperature: 0.2, num_predict: 256 },
+        options: { temperature: 0.2, num_predict: 768 },
       }),
       signal: controller.signal,
     });

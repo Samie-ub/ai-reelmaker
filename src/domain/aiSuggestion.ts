@@ -1,47 +1,23 @@
 import { z } from 'zod';
+import { ACCENTS, ANIMATIONS, BACKGROUNDS, sceneCreativeSchema } from './project';
 
-export const AI_ACCENTS = ['#faff69', '#ffffff', '#22c55e', '#3b82f6'] as const;
-
-export const aiReelSuggestionSchema = z.object({
-  title: z.string().trim().min(1).max(72),
-  subtitle: z.string().trim().max(120),
-  accent: z.enum(AI_ACCENTS),
-  alignment: z.enum(['left', 'center']),
-  duration: z.number().int().min(6).max(30),
-}).strict();
-
+export const aiReelSuggestionSchema = z.object({ scenes: z.array(sceneCreativeSchema).min(1).max(6) }).strict();
 export type AiReelSuggestion = z.infer<typeof aiReelSuggestionSchema>;
 
-export const aiReelSuggestionJsonSchema = {
-  type: 'object',
-  additionalProperties: false,
+const sceneJsonSchema = {
+  type: 'object', additionalProperties: false,
   properties: {
-    title: {
-      type: 'string',
-      minLength: 1,
-      maxLength: 72,
-      description: 'A concise reel headline. Use at most one newline to control line wrapping.',
-    },
-    subtitle: {
-      type: 'string',
-      maxLength: 120,
-      description: 'Supporting copy that adds useful context without repeating the headline.',
-    },
-    accent: {
-      type: 'string',
-      enum: AI_ACCENTS,
-      description: 'The accent color that best supports the requested mood.',
-    },
-    alignment: {
-      type: 'string',
-      enum: ['left', 'center'],
-    },
-    duration: {
-      type: 'integer',
-      minimum: 6,
-      maximum: 30,
-      description: 'Video duration in seconds.',
-    },
+    title: { type: 'string', minLength: 1, maxLength: 72, description: 'Punchy on-screen headline with at most one newline.' },
+    subtitle: { type: 'string', maxLength: 120, description: 'Useful supporting copy that does not repeat the headline.' },
+    accent: { type: 'string', enum: ACCENTS }, background: { type: 'string', enum: BACKGROUNDS },
+    alignment: { type: 'string', enum: ['left', 'center'] }, duration: { type: 'integer', minimum: 2, maximum: 15 },
+    animation: { type: 'string', enum: ANIMATIONS },
   },
-  required: ['title', 'subtitle', 'accent', 'alignment', 'duration'],
+  required: ['title', 'subtitle', 'accent', 'background', 'alignment', 'duration', 'animation'],
+} as const;
+
+export const aiReelSuggestionJsonSchema = {
+  type: 'object', additionalProperties: false,
+  properties: { scenes: { type: 'array', minItems: 1, maxItems: 6, items: sceneJsonSchema, description: 'An ordered sequence that develops one coherent short-form story.' } },
+  required: ['scenes'],
 } as const;

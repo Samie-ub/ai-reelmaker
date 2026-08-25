@@ -1,6 +1,6 @@
 import { Check, Download, FileJson, LoaderCircle, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { ReelProject } from '../../domain/project';
+import { getProjectDuration, type ReelProject } from '../../domain/project';
 import { browserExporter } from '../../video/browserExporter';
 
 type ExportState = 'idle' | 'rendering' | 'success' | 'error' | 'cancelled';
@@ -15,6 +15,7 @@ const saveBlob = (blob: Blob, filename: string) => {
 };
 
 export function ExportDialog({ project, open, onClose }: { project: ReelProject; open: boolean; onClose: () => void }) {
+  const duration = getProjectDuration(project);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [state, setState] = useState<ExportState>('idle');
@@ -58,7 +59,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
           <LoaderCircle className="spin" size={28} />
           <span className="eyebrow">Rendering locally</span>
           <h2>Building every frame</h2>
-          <p>Keep this tab open. A {project.duration}-second video takes about {project.duration} seconds to encode.</p>
+          <p>Keep this tab open. A {duration}-second video takes about {duration} seconds to encode.</p>
           <div className="progress-track"><i style={{ width: `${progress}%` }} /></div>
           <strong>{progress}%</strong>
           <button className="button secondary" onClick={() => abortRef.current?.abort()}>Cancel export</button>
@@ -75,7 +76,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
           <p>Video is encoded privately in this browser. Nothing is uploaded.</p>
           {(state === 'error' || state === 'cancelled') && <div className={`inline-alert ${state}`} role="alert">{state === 'cancelled' ? 'Export cancelled. Your project is unchanged.' : error}</div>}
           <button className="export-option" onClick={exportVideo} disabled={!browserExporter.isSupported()}>
-            <span className="export-option-icon"><Download /></span><span><strong>Export WebM video</strong><small>1080 × 1920 · 30 fps · {project.duration}s</small></span><span>Recommended</span>
+            <span className="export-option-icon"><Download /></span><span><strong>Export WebM video</strong><small>1080 × 1920 · 30 fps · {duration}s</small></span><span>Recommended</span>
           </button>
           <button className="export-option" onClick={downloadProject}>
             <span className="export-option-icon"><FileJson /></span><span><strong>Download project</strong><small>Portable JSON backup for later editing</small></span>

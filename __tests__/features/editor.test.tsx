@@ -39,16 +39,15 @@ describe('editor', () => {
     await user.clear(headline);
     await user.type(headline, 'Measured growth');
     await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument(), { timeout: 1200 });
-    expect(window.localStorage.getItem('reelmaker.project.v1')).toContain('Measured growth');
+    expect(window.localStorage.getItem('reelmaker.project.v2')).toContain('Measured growth');
   });
 
   it('applies a validated local AI suggestion to the editor', async () => {
     const suggestion = {
-      title: 'Brewed for\nafter dark.',
-      subtitle: 'A bolder coffee for the hours when ideas refuse to sleep.',
-      accent: '#22c55e',
-      alignment: 'center',
-      duration: 14,
+      scenes: [
+        { title: 'Brewed for\nafter dark.', subtitle: 'A bolder coffee for the hours when ideas refuse to sleep.', accent: '#22c55e', background: '#0a0a0a', alignment: 'center', duration: 6, animation: 'rise' },
+        { title: 'Make the night yours.', subtitle: 'Available now.', accent: '#faff69', background: '#172554', alignment: 'left', duration: 4, animation: 'scale' },
+      ],
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       message: { role: 'assistant', content: JSON.stringify(suggestion) },
@@ -56,12 +55,39 @@ describe('editor', () => {
     const user = userEvent.setup();
     render(<EditorScreen templateId="signal" />);
 
-    await user.type(screen.getByRole('textbox', { name: /AI create/ }), 'Launch a coffee for night owls');
-    await user.click(screen.getByRole('button', { name: 'Create with Llama 3.2' }));
+    await user.type(screen.getByRole('textbox', { name: /AI scene builder/ }), 'Launch a coffee for night owls');
+    await user.click(screen.getByRole('button', { name: 'Full reel' }));
 
-    expect(await screen.findByText('AI direction applied. Review and edit anything before exporting.')).toBeInTheDocument();
+    expect(await screen.findByText('2 editable AI scenes applied.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /Headline/ })).toHaveValue('Brewed for\nafter dark.');
     expect(screen.getByRole('textbox', { name: /Supporting text/ })).toHaveValue('A bolder coffee for the hours when ideas refuse to sleep.');
-    expect(screen.getByRole('slider', { name: /Duration/ })).toHaveValue('14');
+    expect(screen.getByRole('slider', { name: /Scene duration/ })).toHaveValue('6');
+    expect(screen.getByText('2/8')).toBeInTheDocument();
+  });
+
+  it('adds and edits scenes manually', async () => {
+    const user = userEvent.setup();
+    render(<EditorScreen templateId="editorial" />);
+
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByText('2/8')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Headline/ })).toHaveValue('New scene');
+    await user.clear(screen.getByRole('textbox', { name: /Headline/ }));
+    await user.type(screen.getByRole('textbox', { name: /Headline/ }), 'Second chapter');
+    expect(screen.getByRole('textbox', { name: /Headline/ })).toHaveValue('Second chapter');
+  });
+
+  it('lets AI rewrite only the selected manual scene', async () => {
+    const suggestion = { scenes: [{ title: 'A sharper second beat', subtitle: 'Rewritten locally.', accent: '#3b82f6', background: '#172554', alignment: 'left', duration: 5, animation: 'slide-left' }] };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: { role: 'assistant', content: JSON.stringify(suggestion) } }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+    const user = userEvent.setup();
+    render(<EditorScreen templateId="signal" />);
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    await user.type(screen.getByRole('textbox', { name: /AI scene builder/ }), 'Make this beat more direct');
+    await user.click(screen.getByRole('button', { name: 'Rewrite scene' }));
+
+    expect(await screen.findByText('Selected scene rewritten and remains fully editable.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Headline/ })).toHaveValue('A sharper second beat');
+    expect(screen.getByText('2/8')).toBeInTheDocument();
   });
 });

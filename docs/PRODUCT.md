@@ -43,20 +43,20 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 
 1. Open the template library and inspect reusable template cards.
 2. Choose a template and enter the editor with a valid starter project.
-3. Edit headline, supporting copy, accent color, duration, and text alignment.
+3. Add, select, reorder, duplicate, or remove scenes and edit each scene's copy, palette, duration, alignment, and entrance animation.
 4. Play or scrub the exact 9:16 Remotion preview and inspect the timeline.
 5. Export a WebM locally, or download the project JSON for portability.
 6. Recover the latest valid draft after refresh.
-7. Optionally turn a natural-language brief into validated, editable template settings using a locally installed Llama model.
+7. Optionally turn a natural-language brief into a validated scene sequence, or ask local Llama to rewrite only the selected scene.
 
 ### In scope
 
 - Template library with category filtering and empty-safe search.
-- A focused responsive editor with preview, properties, timeline, validation, autosave status, undo-by-reset, and destructive reset confirmation.
+- A focused responsive scene editor with preview, scene rail, properties, proportional timeline, validation, autosave status, undo-by-reset, and destructive reset confirmation.
 - Remotion composition and player using shared typed project data.
 - Local draft persistence with schema validation and stale/corrupt-state recovery.
 - Real local WebM export with feature detection, progress, cancellation, and failure states.
-- Optional local Ollama assistance for template copy, accent, alignment, and duration, with strict schema validation and no generated executable code.
+- Optional local Ollama assistance for the same copy, palette, alignment, duration, and animation fields exposed to manual editing, with whole-reel and selected-scene modes, strict schema validation, and no generated executable code.
 - Accessible keyboard navigation, focus visibility, dialog focus management, labels, reduced motion, and 44px primary touch targets.
 - Strict type checking, linting, unit/integration tests, and production build.
 
@@ -109,7 +109,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - `src/features`: route-level library/editor UI and feature components.
 - `src/ui`: reusable chrome and semantic controls.
 
-Data flows from immutable templates into a validated `ReelProject`. The editor owns transient state, saves through the persistence adapter, and passes the same project into the Remotion composition and export renderer. No UI component reads storage directly.
+Data flows from immutable templates into a validated `ReelProject` containing one to eight ordered scenes. The editor and Ollama adapter both produce the same scene contract. The editor owns transient state, saves through the persistence adapter, and passes the same project into the Remotion composition and export renderer. No UI component reads storage directly.
 
 ### Security and data boundaries
 
@@ -133,7 +133,7 @@ Data flows from immutable templates into a validated `ReelProject`. The editor o
 - `ProjectRepository` is replaceable. Add authenticated cloud storage only when cross-device recovery becomes a top-three user request or local draft loss exceeds 2% of active projects.
 - Uploaded media adds an `AssetRepository`, signed uploads, malware/type validation, lifecycle deletion, and rights acknowledgement only after text-led templates demonstrate repeat use.
 - Sequence server rendering as: version project schema → add idempotent render API → queue and worker → private object storage → signed downloads → retention cleanup → observability/cost alerts. Keep browser export as fallback through migration.
-- Never migrate local drafts silently. Offer explicit import, preserve source schema version, record unsupported fields, and keep downloadable JSON as the compatibility escape hatch.
+- Perform only lossless, backward-compatible local draft migrations automatically. Require explicit import and report unsupported fields for any migration that cannot preserve the complete source; keep downloadable JSON as the compatibility escape hatch.
 
 ## Phased implementation plan
 
