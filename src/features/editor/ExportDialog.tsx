@@ -2,6 +2,8 @@ import { Check, Download, FileJson, LoaderCircle, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { getProjectDuration, type ReelProject } from '../../domain/project';
 import { browserExporter } from '../../video/browserExporter';
+import { aiMemory } from '../../infrastructure/aiMemory';
+import { isDatabaseConfigured } from '../../infrastructure/supabaseClient';
 
 type ExportState = 'idle' | 'rendering' | 'success' | 'error' | 'cancelled';
 
@@ -41,6 +43,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
       const blob = await browserExporter.export(project, ({ frame, totalFrames }) => setProgress(Math.round((frame / totalFrames) * 100)), controller.signal);
       if (!controller.signal.aborted) {
         saveBlob(blob, `reelmaker-${project.templateId}.webm`);
+        void aiMemory.rememberExport(project);
         setState('success');
       }
     } catch (caught) {
@@ -73,7 +76,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
         <>
           <span className="eyebrow">Export / 1080 × 1920</span>
           <h2>Finish your reel</h2>
-          <p>Video is encoded privately in this browser. Nothing is uploaded.</p>
+          <p>{isDatabaseConfigured ? 'Video is encoded privately in this browser. The editable project and successful export outcome can sync to your private database.' : 'Video is encoded privately in this browser. Nothing is uploaded.'}</p>
           {(state === 'error' || state === 'cancelled') && <div className={`inline-alert ${state}`} role="alert">{state === 'cancelled' ? 'Export cancelled. Your project is unchanged.' : error}</div>}
           <button className="export-option" onClick={exportVideo} disabled={!browserExporter.isSupported()}>
             <span className="export-option-icon"><Download /></span><span><strong>Export WebM video</strong><small>1080 × 1920 · 30 fps · {duration}s</small></span><span>Recommended</span>

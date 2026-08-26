@@ -21,7 +21,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 
 ### Assumptions and unanswered questions
 
-- **Assumption:** the first release is local-first and single-user; drafts live in browser storage.
+- **Assumption:** the first release remains local-first; drafts live in browser storage and optionally synchronize to an owner-isolated PostgreSQL database.
 - **Assumption:** 1080×1920, 30fps, and 6–30 seconds cover the initial use case.
 - **Assumption:** text-led motion templates with optional local AI creative direction are sufficient to validate usefulness before uploads and audio licensing are introduced.
 - **Question:** is MP4 mandatory at launch, or is standards-compliant WebM acceptable for initial validation?
@@ -57,12 +57,13 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - Local draft persistence with schema validation and stale/corrupt-state recovery.
 - Real local WebM export with feature detection, progress, cancellation, and failure states.
 - Optional local Ollama assistance for the same copy, palette, alignment, duration, and animation fields exposed to manual editing, with whole-reel and selected-scene modes, strict schema validation, and no generated executable code.
+- Optional Supabase project synchronization, generation history, export snapshots, and owner-scoped pgvector retrieval memory, while preserving uninterrupted local-only operation.
 - Accessible keyboard navigation, focus visibility, dialog focus management, labels, reduced motion, and 44px primary touch targets.
 - Strict type checking, linting, unit/integration tests, and production build.
 
 ### Out of scope
 
-- Accounts, teams, billing, analytics, comments, cloud sync, and cloud storage.
+- Permanent accounts, teams, billing, analytics, comments, and uploaded media storage.
 - Uploaded image/video/audio assets, licensed stock media, generative image/video models, captions/transcription, and social publishing.
 - Multi-track nonlinear editing, transitions marketplace, keyframes, or arbitrary scene graphs.
 - Server MP4 rendering, render queues, notifications, and durable render history.
@@ -116,7 +117,7 @@ Data flows from immutable templates into a validated `ReelProject` containing on
 - Trust boundaries: URL template identifiers, localStorage JSON, user text, browser media APIs, and downloaded filenames.
 - Zod rejects malformed or stale persisted state; unknown template IDs fall back to a safe library route.
 - Text is length constrained and rendered without HTML injection. Export names are sanitized.
-- No secrets, cloud calls, cookies, tracking, or uploads exist in this release. Optional AI requests go only to the user's loopback Ollama service.
+- No secret database keys, behavioral tracking, or media uploads exist in this release. Optional AI requests go to the user's loopback Ollama service; database calls occur only when browser-safe Supabase configuration is present.
 - Export is explicitly initiated, cancellable, and only creates an object URL for the generated file; URLs are revoked after use.
 - CSP should be set by the deployment host (`default-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; worker-src 'self' blob:`) and tightened if font/assets move off inline styling.
 
@@ -130,7 +131,7 @@ Data flows from immutable templates into a validated `ReelProject` containing on
 ## Upgrade path
 
 - `VideoExporter` is replaceable. Move from `BrowserWebmExporter` to a server Remotion MP4 adapter when validated users require MP4, unsupported-browser export exceeds 5%, or median local export exceeds 2× video duration.
-- `ProjectRepository` is replaceable. Add authenticated cloud storage only when cross-device recovery becomes a top-three user request or local draft loss exceeds 2% of active projects.
+- `ProjectRepository` keeps local storage as the fast offline source and optionally mirrors validated projects to owner-isolated Supabase rows. Link anonymous identities to permanent authentication before promising cross-device recovery.
 - Uploaded media adds an `AssetRepository`, signed uploads, malware/type validation, lifecycle deletion, and rights acknowledgement only after text-led templates demonstrate repeat use.
 - Sequence server rendering as: version project schema → add idempotent render API → queue and worker → private object storage → signed downloads → retention cleanup → observability/cost alerts. Keep browser export as fallback through migration.
 - Perform only lossless, backward-compatible local draft migrations automatically. Require explicit import and report unsupported fields for any migration that cannot preserve the complete source; keep downloadable JSON as the compatibility escape hatch.

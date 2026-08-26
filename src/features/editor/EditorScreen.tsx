@@ -5,6 +5,8 @@ import { navigate } from '../../navigation';
 import { ACCENTS, ANIMATIONS, BACKGROUNDS, createProject, createScene, getProjectDuration, getTemplate, projectSchema, reelSceneSchema, type ReelProject, type ReelScene } from '../../domain/project';
 import { projectRepository } from '../../infrastructure/projectRepository';
 import { generateReelSuggestion } from '../../infrastructure/ollamaReelGenerator';
+import { aiMemory } from '../../infrastructure/aiMemory';
+import { cloudProjectRepository } from '../../infrastructure/cloudProjectRepository';
 import { Logo } from '../../ui/Logo';
 import { ReelComposition } from '../../video/ReelComposition';
 import { ExportDialog } from './ExportDialog';
@@ -18,6 +20,7 @@ export function EditorScreen({ templateId }: { templateId: string }) {
   const [project, setProject] = useState<ReelProject | null>(initial);
   const [selectedSceneId, setSelectedSceneId] = useState(initial?.scenes[0]?.id ?? '');
   const [saveState, setSaveState] = useState<'saving' | 'saved' | 'invalid'>('saved');
+  const [cloudState, setCloudState] = useState<'disabled' | 'syncing' | 'synced' | 'error'>(cloudProjectRepository.isConfigured() ? 'syncing' : 'disabled');
   const [isPlaying, setIsPlaying] = useState(false);
   const [frame, setFrame] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
@@ -38,7 +41,13 @@ export function EditorScreen({ templateId }: { templateId: string }) {
     const valid = projectSchema.safeParse(project);
     if (!valid.success) { setSaveState('invalid'); return; }
     setSaveState('saving');
-    const timeout = window.setTimeout(() => { projectRepository.save(valid.data); setSaveState('saved'); }, 350);
+    const timeout = window.setTimeout(() => {
+      projectRepository.save(valid.data); setSaveState('saved');
+      if (cloudProjectRepository.isConfigured()) {
+        setCloudState('syncing');
+        void cloudProjectRepository.saveProject(valid.data).then(() => setCloudState('synced')).catch(() => setCloudState('error'));
+      }
+    }, 350);
     return () => window.clearTimeout(timeout);
   }, [project]);
 
@@ -98,7 +107,8 @@ export function EditorScreen({ templateId }: { templateId: string }) {
       const brief = mode === 'scene'
         ? `Create exactly one replacement scene based on this request: ${aiPrompt}. Current scene headline: ${scene.title}. Keep it coherent with the surrounding reel.`
         : aiPrompt;
-      const suggestion = await generateReelSuggestion(brief, project.templateId);
+      const suggestion = await generateReelSuggestion(await aiMemory.enrichBrief(brief), project.templateId);
+      void aiMemory.recordGeneration(project, mode, aiPrompt, suggestion);
       if (mode === 'scene') {
         const replacement = { id: scene.id, ...suggestion.scenes[0] };
         setProject((current) => current ? { ...current, scenes: current.scenes.map((item) => item.id === scene.id ? replacement : item), updatedAt: Date.now() } : current);
@@ -116,7 +126,7 @@ export function EditorScreen({ templateId }: { templateId: string }) {
     <div className="editor-shell">
       <header className="editor-header">
         <div className="editor-header-left"><Logo /><span className="header-rule" /><button className="project-name">Untitled reel <ChevronDown size={15} /></button></div>
-        <div className="save-state" aria-live="polite">{saveState === 'saved' ? <><Check size={14} /> Saved locally</> : saveState === 'saving' ? 'Saving…' : 'Fix validation to save'}</div>
+        <div className="save-state" aria-live="polite">{saveState === 'saved' ? <><Check size={14} /> Saved locally{cloudState === 'synced' ? ' · Cloud synced' : cloudState === 'syncing' ? ' · Syncing…' : cloudState === 'error' ? ' · Cloud unavailable' : ''}</> : saveState === 'saving' ? 'Saving…' : 'Fix validation to save'}</div>
         <div className="editor-actions"><button className="button secondary download-project" onClick={() => setExportOpen(true)}><Download size={17} /> <span>Download</span></button><button className="button primary" disabled={!parsed?.success} onClick={() => setExportOpen(true)}>Export video</button></div>
       </header>
 
