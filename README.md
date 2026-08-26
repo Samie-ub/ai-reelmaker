@@ -1,32 +1,59 @@
 # ReelMaker
 
-A local-first, responsive short-form video editor built with React, TypeScript, Remotion, and Vite. Build a 9:16 reel from editable scenes, direct it manually or with a local Llama model, preview frame-accurately, save automatically, and export a real WebM video in the browser.
+### Create polished vertical videos with manual control and private, local AI.
 
-## Current capabilities
+ReelMaker is a local-first motion editor for building short-form, 9:16 videos from editable scenes. Write and style every scene yourself, ask a local Llama model to create a full reel or rewrite one section, preview the result frame by frame, and export directly from the browser.
 
-- Create, reorder, duplicate, and remove up to eight independently styled scenes.
-- Edit scene copy, colors, alignment, duration, and entrance animation manually.
-- Generate a complete reel or rewrite one scene with local `llama3.2:latest`.
-- Preview the complete sequence with Remotion and export a 1080×1920 WebM locally.
-- Save continuously in the browser, with optional owner-isolated Supabase sync.
-- Learn from successful exports through private pgvector retrieval without fine-tuning the model or uploading video media.
+No AI subscription is required. Video rendering stays on your device, and cloud synchronization is entirely optional.
 
-The project is under active development. Browser storage is the default source of truth, WebM is the current export format, and permanent accounts, uploaded media, audio tracks, multi-track editing, and server-side MP4 rendering are not implemented yet.
+> **Development status:** ReelMaker is an early-stage product under active development. The editor is functional, but the current release is not yet intended as a replacement for a full nonlinear video editor.
 
-## Run locally
+## Why ReelMaker
 
-Requires Node.js 24+.
+Most AI video tools trade creative control for speed. ReelMaker keeps the generated result inside the same structured editor used for manual work, so every AI-created scene remains editable.
+
+- **Edit everything** — control copy, colors, alignment, timing, sequence, and motion.
+- **Use private AI** — generate locally with `llama3.2:latest` through Ollama.
+- **Work scene by scene** — create, reorder, duplicate, rewrite, or remove up to eight scenes.
+- **Preview accurately** — use Remotion for deterministic, frame-based playback.
+- **Export locally** — render a 1080×1920 WebM without uploading source media.
+- **Build useful memory** — optionally retrieve patterns from previously exported reels using PostgreSQL and pgvector.
+
+## Product overview
+
+| Area | Current capability |
+| --- | --- |
+| Canvas | Vertical 1080×1920 video at 30 fps |
+| Editing | Structured multi-scene editor with independent copy, styling, duration, and motion |
+| AI creation | Full-reel generation and selected-scene rewriting with local Llama 3.2 |
+| Preview | Frame-accurate Remotion player and sequence timeline |
+| Persistence | Immediate browser storage with optional owner-isolated Supabase sync |
+| AI memory | Local embeddings plus private pgvector retrieval from successful exports |
+| Export | Browser-rendered WebM through `MediaRecorder` |
+
+## Quick start
+
+### Requirements
+
+- Node.js 24 or newer
+- npm
+- A Chromium-based browser for the most reliable video export experience
+- Ollama only if you want local AI features
+
+### Run the editor
 
 ```bash
+git clone https://github.com/Samie-ub/ai-reelmaker.git
+cd ai-reelmaker
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Projects are always saved immediately in `localStorage` under a versioned schema. Optional database sync is disabled unless Supabase environment variables are configured.
+Open the local URL printed by Vite. ReelMaker saves valid project changes immediately in versioned browser storage. Supabase and Ollama are optional; the manual editor works without either service.
 
-## Local AI creation
+## Enable local AI
 
-The editor can use `llama3.2:latest` through Ollama to generate a complete sequence of editable scenes or rewrite only the selected scene. AI and manual editing share the same controls: headline, supporting copy, accent, background, alignment, duration, order, and entrance animation. Remotion remains the renderer; model output is constrained to a JSON schema and validated before it reaches project state.
+ReelMaker uses Ollama directly from the browser. `llama3.2:latest` generates structured creative direction, while `embeddinggemma:latest` creates embeddings for optional retrieval memory.
 
 ```bash
 ollama pull llama3.2
@@ -34,20 +61,24 @@ ollama pull embeddinggemma
 ollama serve
 ```
 
-Keep Ollama running, start ReelMaker with `npm run dev`, then use **AI scene builder** in the properties panel. Choose **Full reel** to replace the sequence or **Rewrite scene** to preserve the rest of the edit. The request goes directly from the browser to `http://127.0.0.1:11434`; prompts and generated content remain on the local machine. Ollama allows local browser origins by default. If ReelMaker is served from a non-local origin, configure that origin with Ollama's `OLLAMA_ORIGINS` setting.
+With ReelMaker and Ollama running, open **AI scene builder** in the properties panel:
 
-`embeddinggemma` is optional when database sync is disabled. When sync is configured, it embeds briefs and successfully exported reels so similar approved work can be retrieved for later prompts.
+- Choose **Full reel** to replace the current sequence.
+- Choose **Rewrite scene** to update only the selected scene.
 
-## Scene editing
+AI output is constrained to the same validated project schema used by manual controls. It cannot inject executable code into the composition. Requests are sent directly to `http://127.0.0.1:11434`; if the editor is hosted on a non-local origin, add that origin to Ollama's `OLLAMA_ORIGINS` configuration.
 
-Use the left scene rail to add, select, reorder, duplicate, or delete up to eight scenes. Every scene has independent copy, styling, duration, and motion. The bottom timeline shows the relative duration and order of the complete reel. Existing version 1 single-scene drafts are upgraded to the scene model when first opened.
+`embeddinggemma` is not required unless optional database sync and retrieval memory are enabled.
 
-## Optional Supabase database
+## Enable database sync and AI memory
 
-The database layer uses PostgreSQL with pgvector. Local storage remains the offline source of truth; when Supabase is configured, ReelMaker also synchronizes the current project, records AI generations, versions successful exports, and stores export embeddings as private retrieval memories.
+ReelMaker can connect to Supabase for PostgreSQL persistence, anonymous owner identity, project history, and pgvector similarity search. Browser storage remains the local source of truth, so database or network failures do not block manual editing or export.
 
-1. Create a Supabase project and enable **Allow anonymous sign-ins** under Authentication settings.
-2. Link the project and apply the committed migration:
+### 1. Create the Supabase project
+
+Create a project and enable **Allow anonymous sign-ins** in its Authentication settings.
+
+### 2. Apply the database migration
 
 ```bash
 npx supabase login
@@ -55,30 +86,62 @@ npx supabase link --project-ref YOUR_PROJECT_REF
 npx supabase db push
 ```
 
-3. Copy `.env.example` to `.env.local` and add the project URL and browser-safe publishable key:
+The migration is located at [`supabase/migrations/20260826000000_reelmaker_learning.sql`](supabase/migrations/20260826000000_reelmaker_learning.sql).
+
+### 3. Configure the browser client
+
+Copy `.env.example` to `.env.local` and provide only the browser-safe project values:
 
 ```bash
 VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
 
-Never expose a Supabase secret or service-role key through a `VITE_` variable. The migration enables Row Level Security on every private table, revokes public anonymous access, and limits records and similarity search to the authenticated owner. Anonymous accounts are local to the browser until a permanent identity is linked; clearing browser data can make the same anonymous account unrecoverable.
+Never place a secret or service-role key in a `VITE_` variable. Vite exposes these variables to browser code.
 
-For an internet-facing deployment, add Turnstile or another CAPTCHA to the anonymous sign-in flow before enabling public registration, and configure cleanup for abandoned anonymous users. Custom Supabase domains must also be added to the deployment Content Security Policy; the included nginx policy permits `*.supabase.co`.
+### How memory works
 
-### Learning loop
+ReelMaker does not retrain or modify the Llama model. It uses retrieval-augmented generation:
 
-The model weights do not change automatically. ReelMaker uses retrieval-augmented generation:
+1. A successful export is treated as a positive outcome.
+2. The editable project is versioned and summarized.
+3. `embeddinggemma:latest` creates a local vector representation.
+4. The summary and vector are stored under the current database owner.
+5. Similar exported reels are retrieved as structural references for future prompts.
 
-1. A successful export is treated as positive feedback.
-2. The final editable project is versioned and embedded locally with `embeddinggemma`.
-3. The vector and readable scene summary are saved under the current database user.
-4. A later brief retrieves the most similar exported reels through pgvector.
-5. Those examples are added to the Llama prompt as references, with an instruction not to copy wording.
+If authentication, Supabase, or embeddings are unavailable, the memory step fails safely and the core editor continues working.
 
-If Supabase, authentication, or embeddings are unavailable, synchronization and retrieval fail safely without blocking local editing, generation, or export.
+## Architecture
 
-## Verify
+```text
+Manual controls ─┐
+                 ├─> Validated ReelProject ─> Remotion preview ─> Local WebM export
+Local Ollama ────┘             │
+                               ├─> Browser storage
+                               └─> Optional Supabase + pgvector memory
+```
+
+### Technology
+
+- React and TypeScript for the editor
+- Remotion for deterministic video composition and preview
+- Vite for development and production builds
+- Zod for project and model-output validation
+- Ollama for local generation and embeddings
+- Supabase, PostgreSQL, and pgvector for optional sync and retrieval
+- Vitest and Testing Library for automated verification
+
+## Privacy and security
+
+- Video encoding happens in the browser; video media is not uploaded to Supabase.
+- Local AI prompts and generation requests go to the loopback Ollama service.
+- Every private database table uses Row Level Security and owner-scoped policies.
+- Similarity search is restricted to the authenticated owner.
+- Anonymous identities are tied to local browser state until permanent authentication is added. Clearing browser data can make an anonymous account unrecoverable.
+- Public deployments should protect anonymous sign-up with CAPTCHA and clean up abandoned anonymous users.
+- Custom Supabase domains must be added to the deployment Content Security Policy. The included nginx policy already permits `*.supabase.co`.
+
+## Development
 
 ```bash
 npm run typecheck
@@ -88,20 +151,41 @@ npm run build
 npm audit --audit-level=moderate
 ```
 
-## Repository workflow
+Additional commands:
 
-- `main` is the production branch.
-- `dev` is the integration branch.
-- Feature and maintenance work is committed and pushed to focused working branches for owner review.
-- Contributors must keep this README current whenever a major capability or its setup, configuration, security, deployment, or operational requirements change. The complete working agreement is in [AGENTS.md](AGENTS.md).
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Vite development server |
+| `npm run test:watch` | Run tests interactively while developing |
+| `npm run preview` | Preview the production build locally |
 
 ## Production container
 
-The included multi-stage `Dockerfile` serves the immutable build from unprivileged nginx on port 8080, adds SPA routing and security headers, and exposes `/healthz`.
+The included multi-stage `Dockerfile` builds the application and serves it from unprivileged nginx on port `8080`. It includes SPA routing, security headers, and a `/healthz` endpoint.
 
 ```bash
 docker build -t reelmaker .
 docker run --rm -p 8080:8080 reelmaker
 ```
 
-The current exporter produces WebM locally through `MediaRecorder`. See [docs/PRODUCT.md](docs/PRODUCT.md) for the server-rendered Remotion MP4 upgrade path, security boundaries, scope, and acceptance criteria.
+## Roadmap
+
+The current release focuses on a reliable text-led editor. Planned product areas include:
+
+- Permanent accounts and cross-device project recovery
+- Uploaded image, video, and audio assets
+- Captions, transcription, and audio tracks
+- Richer transitions, keyframes, and multi-track editing
+- Server-rendered Remotion MP4 exports and render history
+- Publishing workflows for short-form platforms
+
+The current WebM exporter and local-first workflow will remain useful fallbacks as these capabilities are introduced.
+
+## Repository workflow
+
+- `main` is the production branch.
+- `dev` is the integration branch.
+- Features and maintenance changes are pushed to focused working branches for owner review.
+- Major product or operational changes must update this README in the same branch.
+
+See [`AGENTS.md`](AGENTS.md) for the full working agreement and [`docs/PRODUCT.md`](docs/PRODUCT.md) for product scope, security boundaries, acceptance criteria, and the server-rendering upgrade path.
