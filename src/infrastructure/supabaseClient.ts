@@ -3,7 +3,8 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 
-export const isDatabaseConfigured = Boolean(supabaseUrl && publishableKey);
+// Vitest must stay hermetic even when a developer has cloud credentials in .env.local.
+export const isDatabaseConfigured = import.meta.env.MODE !== 'test' && Boolean(supabaseUrl && publishableKey);
 
 const client = isDatabaseConfigured
   ? createClient(supabaseUrl as string, publishableKey as string, {

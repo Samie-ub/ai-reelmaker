@@ -1,6 +1,6 @@
 # Verification report
 
-Date: 2026-08-06
+Date: 2026-08-26
 
 ## Automated checks
 
@@ -8,14 +8,14 @@ Date: 2026-08-06
 |---|---|---|
 | Strict TypeScript | Pass | `npm run typecheck` completed with no diagnostics. |
 | ESLint | Pass | `npm run lint` completed with zero warnings and errors. |
-| Tests | Pass | 5 files, 12 tests covering domain validation, corrupt persistence recovery, library filter/empty state, editor validation/autosave, and unsupported export capability. |
-| Production build | Pass | Vite 8.2 produced a 0.58KB HTML shell, 19.65KB CSS (4.86KB gzip), and 498.57KB JS (152.47KB gzip). |
+| Tests | Pass | 10 files, 29 tests covering domain validation, persistence recovery, library/editor behavior, deterministic local AI, embedding memory, migration security, shared-composition MP4 rendering, test-environment isolation, and unsupported export capability. |
+| Production build | Pass with size warning | Vite 8.2 produced a 0.58KB HTML shell, 23.41KB CSS, a 741.36KB main JS chunk (217.29KB gzip), and lazy browser-renderer codec chunks. Chunk-size optimization remains follow-up work. |
 | Dependency audit | Pass | `npm audit --audit-level=moderate` reported zero vulnerabilities. |
 | Docker image | Not run | Docker CLI is installed, but the local Docker daemon is not running. The Dockerfile was manually reviewed. |
 
 ## Responsive and state inspection
 
-The in-app browser connector returned no available browser instance, so screenshots and true rendered visual inspection could not be completed in this environment. No external browser automation was substituted. The strongest available source/build inspection covered both primary screens at the required breakpoint rules:
+The in-app browser connector returned no available browser instance, so screenshots, a real WebCodecs export, and true rendered visual inspection could not be completed in this environment. No external browser automation was substituted. The strongest available source/build inspection covered both primary screens at the required breakpoint rules:
 
 - **375px:** library becomes a single-column template feed; editor is preview-first, then a horizontal template rail, controls, and a 600px scrollable timeline; header secondary status/actions collapse; primary controls remain at least 44px.
 - **768px:** library is two columns; editor uses a horizontal template rail with preview/properties split and full-width timeline; minimum column widths fit without page-level horizontal overflow.
@@ -28,5 +28,5 @@ Items that still require a browser-enabled QA pass before release:
 
 1. Capture library and editor screenshots at 375, 768, 1024, and 1440 CSS pixels.
 2. Confirm exact font fallback metrics, Remotion canvas scaling, timeline label wrapping, native dialog focus return, and WCAG AA contrast with computed colors.
-3. Play the downloaded WebM in the supported-browser matrix (Chrome/Edge/Firefox) and confirm real-time export cancellation.
+3. Play the downloaded MP4 in the supported-browser matrix, compare it with the Remotion preview, and confirm export cancellation.
 4. Run the production Docker image and probe `/healthz`, SPA fallback, CSP, and immutable asset headers when Docker is available.
