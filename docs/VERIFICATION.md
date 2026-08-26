@@ -8,11 +8,12 @@ Date: 2026-08-26
 |---|---|---|
 | Strict TypeScript | Pass | `npm run typecheck` completed with no diagnostics. |
 | ESLint | Pass | `npm run lint` completed with zero warnings and errors. |
-| Tests | Pass | 10 files, 29 tests covering domain validation, persistence recovery, library/editor behavior, deterministic local AI, embedding memory, migration security, shared-composition MP4 rendering, test-environment isolation, and unsupported export capability. |
-| Production build | Pass with size warning | Vite 8.2 produced a 0.58KB HTML shell, 23.41KB CSS, a 741.36KB main JS chunk (217.29KB gzip), and lazy browser-renderer codec chunks. Chunk-size optimization remains follow-up work. |
+| Tests | Pass | 11 files, 32 tests covering domain validation, local and cloud persistence recovery, owner-scoped AI feedback, library/editor behavior, deterministic local AI, embedding memory, migration security, shared-composition MP4 rendering, test-environment isolation, and unsupported export capability. |
+| Production build | Pass with size warning | Vite 8.2 produced a 0.58KB HTML shell, 23.41KB CSS, a 742.72KB main JS chunk (217.62KB gzip), and lazy browser-renderer codec chunks. Chunk-size optimization remains follow-up work. |
 | Dependency audit | Pass | `npm audit --audit-level=moderate` reported zero vulnerabilities. |
 | Supabase API connection | Pass | `npm run verify:database -- --api-only` reached Auth and PostgREST; unauthenticated database access is correctly blocked. |
-| Supabase application access | Blocked | `npm run verify:database` reports that anonymous sign-ins are disabled. Enable **Allow anonymous sign-ins** before the app can authenticate and verify the migrated tables/RPC. |
+| Supabase application access | Pass | `npm run verify:database` authenticated anonymously and verified all five owner-scoped tables, Row Level Security access, and the 768-dimension pgvector search function. |
+| Supabase write path | Pass | `npm run verify:database -- --write-test` wrote a temporary linked project, version, AI generation, feedback outcome, and vector memory, then deleted the project and all cascading test rows. |
 | Docker image | Not run | Docker CLI is installed, but the local Docker daemon is not running. The Dockerfile was manually reviewed. |
 
 ## Responsive and state inspection
