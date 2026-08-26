@@ -99,6 +99,16 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 
 Never place a secret or service-role key in a `VITE_` variable. Vite exposes these variables to browser code.
 
+### 4. Verify the connection
+
+Verify the configured project, authentication, migration, RLS access, and pgvector function from the terminal:
+
+```bash
+npm run verify:database
+```
+
+The full verification creates one anonymous Supabase user, just like ReelMaker's first cloud sync, and signs out when it finishes. To check only configuration and API reachability without creating a user, run `npm run verify:database -- --api-only`. Neither command prints the publishable key.
+
 ### How memory works
 
 ReelMaker does not retrain or modify the Llama model. It uses retrieval-augmented generation:
@@ -158,6 +168,7 @@ Additional commands:
 | `npm run dev` | Start the Vite development server |
 | `npm run test:watch` | Run tests interactively while developing |
 | `npm run preview` | Preview the production build locally |
+| `npm run verify:database` | Verify the configured Supabase database and application access |
 
 ## Production container
 

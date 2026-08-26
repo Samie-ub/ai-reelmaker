@@ -11,6 +11,8 @@ Date: 2026-08-26
 | Tests | Pass | 10 files, 29 tests covering domain validation, persistence recovery, library/editor behavior, deterministic local AI, embedding memory, migration security, shared-composition MP4 rendering, test-environment isolation, and unsupported export capability. |
 | Production build | Pass with size warning | Vite 8.2 produced a 0.58KB HTML shell, 23.41KB CSS, a 741.36KB main JS chunk (217.29KB gzip), and lazy browser-renderer codec chunks. Chunk-size optimization remains follow-up work. |
 | Dependency audit | Pass | `npm audit --audit-level=moderate` reported zero vulnerabilities. |
+| Supabase API connection | Pass | `npm run verify:database -- --api-only` reached Auth and PostgREST; unauthenticated database access is correctly blocked. |
+| Supabase application access | Blocked | `npm run verify:database` reports that anonymous sign-ins are disabled. Enable **Allow anonymous sign-ins** before the app can authenticate and verify the migrated tables/RPC. |
 | Docker image | Not run | Docker CLI is installed, but the local Docker daemon is not running. The Dockerfile was manually reviewed. |
 
 ## Responsive and state inspection
