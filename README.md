@@ -16,7 +16,7 @@ Most AI video tools trade creative control for speed. ReelMaker keeps the genera
 - **Use private AI** — generate locally with `llama3.2:latest` through Ollama.
 - **Work scene by scene** — create, reorder, duplicate, rewrite, or remove up to eight scenes.
 - **Preview accurately** — use Remotion for deterministic, frame-based playback.
-- **Export locally** — render a 1080×1920 WebM without uploading source media.
+- **Export locally** — render the exact preview composition as a 1080×1920 H.264 MP4 without uploading source media.
 - **Build useful memory** — optionally retrieve patterns from previously exported reels using PostgreSQL and pgvector.
 
 ## Product overview
@@ -29,7 +29,7 @@ Most AI video tools trade creative control for speed. ReelMaker keeps the genera
 | Preview | Frame-accurate Remotion player and sequence timeline |
 | Persistence | Immediate browser storage with optional owner-isolated Supabase sync |
 | AI memory | Local embeddings plus private pgvector retrieval from successful exports |
-| Export | Browser-rendered WebM through `MediaRecorder` |
+| Export | Browser-rendered H.264 MP4 from the shared Remotion composition |
 
 ## Quick start
 
@@ -115,7 +115,7 @@ If authentication, Supabase, or embeddings are unavailable, the memory step fail
 
 ```text
 Manual controls ─┐
-                 ├─> Validated ReelProject ─> Remotion preview ─> Local WebM export
+                 ├─> Validated ReelProject ─> Remotion preview ─> Local MP4 export
 Local Ollama ────┘             │
                                ├─> Browser storage
                                └─> Optional Supabase + pgvector memory
@@ -176,10 +176,10 @@ The current release focuses on a reliable text-led editor. Planned product areas
 - Uploaded image, video, and audio assets
 - Captions, transcription, and audio tracks
 - Richer transitions, keyframes, and multi-track editing
-- Server-rendered Remotion MP4 exports and render history
+- Background cloud rendering and durable render history
 - Publishing workflows for short-form platforms
 
-The current WebM exporter and local-first workflow will remain useful fallbacks as these capabilities are introduced.
+The current browser MP4 exporter and local-first workflow will remain useful fallbacks when background cloud rendering is introduced.
 
 ## Repository workflow
 

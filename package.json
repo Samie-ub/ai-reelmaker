@@ -13,12 +13,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@remotion/player": "^4.0.320",
+    "@remotion/player": "4.0.517",
+    "@remotion/web-renderer": "4.0.517",
     "@supabase/supabase-js": "^2.112.4",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "remotion": "^4.0.320",
+    "remotion": "4.0.517",
     "zod": "^3.24.1"
   },
   "devDependencies": {

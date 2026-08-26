@@ -24,14 +24,13 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - **Assumption:** the first release remains local-first; drafts live in browser storage and optionally synchronize to an owner-isolated PostgreSQL database.
 - **Assumption:** 1080×1920, 30fps, and 6–30 seconds cover the initial use case.
 - **Assumption:** text-led motion templates with optional local AI creative direction are sufficient to validate usefulness before uploads and audio licensing are introduced.
-- **Question:** is MP4 mandatory at launch, or is standards-compliant WebM acceptable for initial validation?
 - **Question:** which browsers and export codecs must be officially supported?
 - **Question:** will customer-supplied media be processed locally or uploaded in the future?
 - **Question:** what retention policy should apply when server rendering is introduced?
 
 ### Risks and constraints
 
-- Browser video encoding varies by codec and device; the current local WebM export must feature-detect support and recover cleanly.
+- Browser video encoding varies by codec and device; the current local H.264 MP4 export must feature-detect WebCodecs support and recover cleanly.
 - Remotion's production MP4 renderer is a server-side workload with Chromium, storage, queueing, and cost controls; it is intentionally behind an adapter boundary.
 - Browser storage can be cleared and is not cross-device. Drafts must be treated as recoverable convenience, not durable storage.
 - Rendering can be CPU intensive. Duration is constrained to 6–30 seconds and export has visible progress/cancel handling.
@@ -45,7 +44,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 2. Choose a template and enter the editor with a valid starter project.
 3. Add, select, reorder, duplicate, or remove scenes and edit each scene's copy, palette, duration, alignment, and entrance animation.
 4. Play or scrub the exact 9:16 Remotion preview and inspect the timeline.
-5. Export a WebM locally, or download the project JSON for portability.
+5. Export an H.264 MP4 locally from the preview composition, or download the project JSON for portability.
 6. Recover the latest valid draft after refresh.
 7. Optionally turn a natural-language brief into a validated scene sequence, or ask local Llama to rewrite only the selected scene.
 
@@ -55,7 +54,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - A focused responsive scene editor with preview, scene rail, properties, proportional timeline, validation, autosave status, undo-by-reset, and destructive reset confirmation.
 - Remotion composition and player using shared typed project data.
 - Local draft persistence with schema validation and stale/corrupt-state recovery.
-- Real local WebM export with feature detection, progress, cancellation, and failure states.
+- Real local MP4 export from the shared Remotion composition with feature detection, progress, cancellation, and failure states.
 - Optional local Ollama assistance for the same copy, palette, alignment, duration, and animation fields exposed to manual editing, with whole-reel and selected-scene modes, strict schema validation, and no generated executable code.
 - Optional Supabase project synchronization, generation history, export snapshots, and owner-scoped pgvector retrieval memory, while preserving uninterrupted local-only operation.
 - Accessible keyboard navigation, focus visibility, dialog focus management, labels, reduced motion, and 44px primary touch targets.
@@ -130,7 +129,7 @@ Data flows from immutable templates into a validated `ReelProject` containing on
 
 ## Upgrade path
 
-- `VideoExporter` is replaceable. Move from `BrowserWebmExporter` to a server Remotion MP4 adapter when validated users require MP4, unsupported-browser export exceeds 5%, or median local export exceeds 2× video duration.
+- `VideoExporter` is replaceable. Keep `BrowserRemotionExporter` as the local fallback and add a server Remotion adapter when unsupported-browser export exceeds 5%, median local export exceeds 2× video duration, or background rendering becomes a validated need.
 - `ProjectRepository` keeps local storage as the fast offline source and optionally mirrors validated projects to owner-isolated Supabase rows. Link anonymous identities to permanent authentication before promising cross-device recovery.
 - Uploaded media adds an `AssetRepository`, signed uploads, malware/type validation, lifecycle deletion, and rights acknowledgement only after text-led templates demonstrate repeat use.
 - Sequence server rendering as: version project schema → add idempotent render API → queue and worker → private object storage → signed downloads → retention cleanup → observability/cost alerts. Keep browser export as fallback through migration.
@@ -141,7 +140,7 @@ Data flows from immutable templates into a validated `ReelProject` containing on
 1. **Foundation** — repository agreement, design source of truth, build/test tooling, tokens, route shell. Acceptance: app boots, typecheck/lint/build pass, keyboard focus is visible.
 2. **Core domain and library** — schemas, templates, search/filter, draft recovery. Acceptance: valid template starts an editor project; malformed saved state cannot crash the app; template logic is unit-tested.
 3. **Editor vertical slice** — Remotion preview, project controls, persistence, timeline, responsive workbench. Acceptance: edits update preview immediately, survive reload, validate, and remain usable at 375/768/1024/1440 widths.
-4. **Export and recovery** — real WebM adapter, progress/cancel/error/success dialog, JSON portability, reset confirmation. Acceptance: supported browsers download a playable vertical video; unsupported APIs show actionable failure; destructive reset requires confirmation.
+4. **Export and recovery** — shared-composition MP4 adapter, progress/cancel/error/success dialog, JSON portability, reset confirmation. Acceptance: supported browsers download a playable vertical video matching the preview; unsupported APIs show actionable failure; destructive reset requires confirmation.
 5. **Production verification** — tests, accessibility checks, visual inspection, performance/build review, docs. Acceptance: mandated checks pass; primary screens and major states are inspected at all required viewports with no clipping or accidental overflow.
 
 ## Quality and security checklist

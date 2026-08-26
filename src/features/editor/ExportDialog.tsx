@@ -42,7 +42,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
     try {
       const blob = await browserExporter.export(project, ({ frame, totalFrames }) => setProgress(Math.round((frame / totalFrames) * 100)), controller.signal);
       if (!controller.signal.aborted) {
-        saveBlob(blob, `reelmaker-${project.templateId}.webm`);
+        saveBlob(blob, `reelmaker-${project.templateId}.mp4`);
         void aiMemory.rememberExport(project);
         setState('success');
       }
@@ -62,7 +62,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
           <LoaderCircle className="spin" size={28} />
           <span className="eyebrow">Rendering locally</span>
           <h2>Building every frame</h2>
-          <p>Keep this tab open. A {duration}-second video takes about {duration} seconds to encode.</p>
+          <p>Keep this tab open while Remotion renders the same composition shown in the preview.</p>
           <div className="progress-track"><i style={{ width: `${progress}%` }} /></div>
           <strong>{progress}%</strong>
           <button className="button secondary" onClick={() => abortRef.current?.abort()}>Cancel export</button>
@@ -70,7 +70,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
       ) : state === 'success' ? (
         <div className="export-progress success" role="status">
           <span className="success-icon"><Check /></span><span className="eyebrow">Export complete</span><h2>Your reel is ready.</h2>
-          <p>The WebM video was downloaded to your device.</p><button className="button primary" onClick={close}>Back to editor</button>
+          <p>The MP4 video was downloaded to your device.</p><button className="button primary" onClick={close}>Back to editor</button>
         </div>
       ) : (
         <>
@@ -79,7 +79,7 @@ export function ExportDialog({ project, open, onClose }: { project: ReelProject;
           <p>{isDatabaseConfigured ? 'Video is encoded privately in this browser. The editable project and successful export outcome can sync to your private database.' : 'Video is encoded privately in this browser. Nothing is uploaded.'}</p>
           {(state === 'error' || state === 'cancelled') && <div className={`inline-alert ${state}`} role="alert">{state === 'cancelled' ? 'Export cancelled. Your project is unchanged.' : error}</div>}
           <button className="export-option" onClick={exportVideo} disabled={!browserExporter.isSupported()}>
-            <span className="export-option-icon"><Download /></span><span><strong>Export WebM video</strong><small>1080 × 1920 · 30 fps · {duration}s</small></span><span>Recommended</span>
+            <span className="export-option-icon"><Download /></span><span><strong>Export MP4 video</strong><small>H.264 · 1080 × 1920 · 30 fps · {duration}s</small></span><span>Recommended</span>
           </button>
           <button className="export-option" onClick={downloadProject}>
             <span className="export-option-icon"><FileJson /></span><span><strong>Download project</strong><small>Portable JSON backup for later editing</small></span>
