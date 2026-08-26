@@ -1,5 +1,5 @@
 import type { AiReelSuggestion } from '../domain/aiSuggestion';
-import type { ReelProject } from '../domain/project';
+import { projectSchema, type ReelProject, type TemplateId } from '../domain/project';
 import { ensureDatabaseUser, getSupabaseClient, isDatabaseConfigured } from './supabaseClient';
 
 const CLOUD_PROJECT_KEY = 'reelmaker.cloud.project-id.v1';
@@ -9,6 +9,27 @@ export type RetrievedMemory = { content: string; similarity: number };
 
 class CloudProjectRepository {
   isConfigured() { return isDatabaseConfigured; }
+
+  async loadProject(templateId: TemplateId): Promise<ReelProject | null> {
+    const client = getSupabaseClient();
+    if (!client) return null;
+    const user = await ensureDatabaseUser();
+    const storedId = window.localStorage.getItem(CLOUD_PROJECT_KEY);
+
+    if (storedId) {
+      const { data, error } = await client.from('projects').select('id, document').eq('id', storedId).eq('owner_id', user.id).maybeSingle();
+      if (error) throw error;
+      const storedProject = projectSchema.safeParse(data?.document);
+      if (storedProject.success && storedProject.data.templateId === templateId) return storedProject.data;
+    }
+
+    const { data, error } = await client.from('projects').select('id, document').eq('owner_id', user.id).eq('template_id', templateId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+    if (error) throw error;
+    const latestProject = projectSchema.safeParse(data?.document);
+    if (!data?.id || !latestProject.success) return null;
+    window.localStorage.setItem(CLOUD_PROJECT_KEY, data.id as string);
+    return latestProject.data;
+  }
 
   async saveProject(project: ReelProject): Promise<string | null> {
     const client = getSupabaseClient();
@@ -39,6 +60,17 @@ class CloudProjectRepository {
     const projectId = await this.saveProject(project);
     if (!projectId) return null;
     const { data, error } = await client.from('ai_generations').insert({ project_id: projectId, owner_id: user.id, mode, model: GENERATION_MODEL, prompt, response }).select('id').single();
+    if (error) throw error;
+    return data.id as string;
+  }
+
+  async recordGenerationFeedback(generationId: string, outcome: 'edited' | 'exported' | 'rejected', editedFields: string[] = [], rating?: number) {
+    const client = getSupabaseClient();
+    if (!client) return null;
+    const user = await ensureDatabaseUser();
+    const { data, error } = await client.from('generation_feedback').insert({
+      generation_id: generationId, owner_id: user.id, outcome, edited_fields: editedFields, rating: rating ?? null,
+    }).select('id').single();
     if (error) throw error;
     return data.id as string;
   }

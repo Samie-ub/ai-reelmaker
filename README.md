@@ -109,6 +109,14 @@ npm run verify:database
 
 The full verification creates one anonymous Supabase user, just like ReelMaker's first cloud sync, and signs out when it finishes. To check only configuration and API reachability without creating a user, run `npm run verify:database -- --api-only`. Neither command prints the publishable key.
 
+To prove that every application table accepts owner-scoped writes, run the disposable smoke test below. It creates one temporary project with related version, generation, feedback, and memory rows, then deletes the project and all related rows before exiting:
+
+```bash
+npm run verify:database -- --write-test
+```
+
+With database sync enabled, the editor keeps browser storage as its fast local source of truth, restores the matching cloud project when the local copy is unavailable, and continuously syncs valid edits. AI requests and structured responses are recorded. A successful video export stores a project version and searchable local embedding, and marks the latest AI generation as exported. Video files remain on the user's device.
+
 ### How memory works
 
 ReelMaker does not retrain or modify the Llama model. It uses retrieval-augmented generation:

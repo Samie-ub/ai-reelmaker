@@ -15,6 +15,8 @@ export const addMemoriesToBrief = (brief: string, memories: RetrievedMemory[]) =
 };
 
 class AiMemoryService {
+  private latestGenerationId: string | null = null;
+
   async enrichBrief(brief: string) {
     if (!cloudProjectRepository.isConfigured()) return brief;
     try {
@@ -25,7 +27,11 @@ class AiMemoryService {
 
   async recordGeneration(project: ReelProject, mode: 'project' | 'scene', prompt: string, response: AiReelSuggestion) {
     if (!cloudProjectRepository.isConfigured()) return null;
-    try { return await cloudProjectRepository.recordGeneration(project, mode, prompt, response); }
+    try {
+      const generationId = await cloudProjectRepository.recordGeneration(project, mode, prompt, response);
+      this.latestGenerationId = generationId;
+      return generationId;
+    }
     catch { return null; }
   }
 
@@ -34,7 +40,12 @@ class AiMemoryService {
     try {
       const content = projectMemoryText(project);
       const embedding = await createEmbedding(content);
-      return await cloudProjectRepository.recordExportMemory(project, content, embedding, EMBEDDING_MODEL);
+      const memoryId = await cloudProjectRepository.recordExportMemory(project, content, embedding, EMBEDDING_MODEL);
+      if (this.latestGenerationId) {
+        await cloudProjectRepository.recordGenerationFeedback(this.latestGenerationId, 'exported');
+        this.latestGenerationId = null;
+      }
+      return memoryId;
     } catch { return null; }
   }
 }

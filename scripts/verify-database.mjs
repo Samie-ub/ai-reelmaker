@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 const REQUIRED_TABLES = ['projects', 'project_versions', 'ai_generations', 'generation_feedback', 'reel_memories'];
 const EMBEDDING_DIMENSIONS = 768;
 const apiOnly = process.argv.includes('--api-only');
+const writeTest = process.argv.includes('--write-test');
 
 const parseEnv = (text) => Object.fromEntries(text
   .split(/\r?\n/u)
@@ -38,6 +39,50 @@ const timedFetch = (input, init = {}) => fetch(input, {
   ...init,
   signal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
 });
+
+const verifyWrites = async (client, ownerId) => {
+  const document = {
+    version: 2, templateId: 'signal', updatedAt: Date.now(),
+    scenes: [{ id: 'database-smoke-test', title: 'Database smoke test', subtitle: 'Temporary verification record', accent: '#faff69', background: '#0a0a0a', alignment: 'left', duration: 2, animation: 'fade' }],
+  };
+  let projectId;
+  try {
+    const { data: project, error: projectError } = await client.from('projects').insert({
+      owner_id: ownerId, title: 'ReelMaker database smoke test', template_id: 'signal', schema_version: 2, document,
+    }).select('id').single();
+    if (projectError) throw new Error(`projects write: ${projectError.message}`);
+    projectId = project.id;
+
+    const { data: version, error: versionError } = await client.from('project_versions').insert({
+      project_id: projectId, owner_id: ownerId, schema_version: 2, document, source: 'export',
+    }).select('id').single();
+    if (versionError) throw new Error(`project_versions write: ${versionError.message}`);
+
+    const { data: generation, error: generationError } = await client.from('ai_generations').insert({
+      project_id: projectId, owner_id: ownerId, mode: 'project', model: 'llama3.2:latest', prompt: 'Temporary database verification prompt', response: { scenes: document.scenes },
+    }).select('id').single();
+    if (generationError) throw new Error(`ai_generations write: ${generationError.message}`);
+
+    const { error: feedbackError } = await client.from('generation_feedback').insert({
+      generation_id: generation.id, owner_id: ownerId, outcome: 'exported', edited_fields: [], rating: null,
+    });
+    if (feedbackError) throw new Error(`generation_feedback write: ${feedbackError.message}`);
+
+    const { error: memoryError } = await client.from('reel_memories').insert({
+      project_id: projectId, project_version_id: version.id, owner_id: ownerId,
+      content: 'Temporary ReelMaker database verification memory', embedding: Array(EMBEDDING_DIMENSIONS).fill(0),
+      embedding_model: 'embeddinggemma:latest', quality_score: 1,
+    });
+    if (memoryError) throw new Error(`reel_memories write: ${memoryError.message}`);
+    pass('Owner-scoped writes succeeded across projects, versions, AI generations, feedback, and memories');
+  } finally {
+    if (projectId) {
+      const { error } = await client.from('projects').delete().eq('id', projectId).eq('owner_id', ownerId);
+      if (error) throw new Error(`Temporary write-test cleanup failed: ${error.message}`);
+      pass('Temporary write-test records were removed');
+    }
+  }
+};
 
 const main = async () => {
   console.log('\nReelMaker database verification\n');
@@ -96,6 +141,7 @@ const main = async () => {
     if (memoryError) throw new Error(`match_reel_memories: ${memoryError.message}`);
     pass(`pgvector memory search accepts ${EMBEDDING_DIMENSIONS}-dimension embeddings`);
     pass('Row Level Security allowed the authenticated owner-scoped checks');
+    if (writeTest) await verifyWrites(client, authData.user.id);
   } finally {
     await client.auth.signOut();
   }

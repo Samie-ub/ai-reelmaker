@@ -15,12 +15,13 @@ const animationLabels: Record<ReelScene['animation'], string> = { rise: 'Rise up
 
 export function EditorScreen({ templateId }: { templateId: string }) {
   const template = getTemplate(templateId);
-  const persisted = projectRepository.load();
+  const persisted = useMemo(() => projectRepository.load(), []);
   const initial = useMemo(() => template ? (persisted?.templateId === template.id ? persisted : createProject(template)) : null, [template, persisted]);
   const [project, setProject] = useState<ReelProject | null>(initial);
   const [selectedSceneId, setSelectedSceneId] = useState(initial?.scenes[0]?.id ?? '');
   const [saveState, setSaveState] = useState<'saving' | 'saved' | 'invalid'>('saved');
   const [cloudState, setCloudState] = useState<'disabled' | 'syncing' | 'synced' | 'error'>(cloudProjectRepository.isConfigured() ? 'syncing' : 'disabled');
+  const [cloudReady, setCloudReady] = useState(!cloudProjectRepository.isConfigured() || Boolean(persisted));
   const [isPlaying, setIsPlaying] = useState(false);
   const [frame, setFrame] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
@@ -37,7 +38,25 @@ export function EditorScreen({ templateId }: { templateId: string }) {
   const issues = sceneParsed && !sceneParsed.success ? Object.fromEntries(sceneParsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])) : {};
 
   useEffect(() => {
-    if (!project) return;
+    if (cloudReady || !template || !cloudProjectRepository.isConfigured()) return;
+    let cancelled = false;
+    void cloudProjectRepository.loadProject(template.id)
+      .then((cloudProject) => {
+        if (cancelled) return;
+        if (cloudProject) {
+          setProject(cloudProject);
+          setSelectedSceneId(cloudProject.scenes[0].id);
+          projectRepository.save(cloudProject);
+          setCloudState('synced');
+        }
+      })
+      .catch(() => { if (!cancelled) setCloudState('error'); })
+      .finally(() => { if (!cancelled) setCloudReady(true); });
+    return () => { cancelled = true; };
+  }, [cloudReady, template]);
+
+  useEffect(() => {
+    if (!project || !cloudReady) return;
     const valid = projectSchema.safeParse(project);
     if (!valid.success) { setSaveState('invalid'); return; }
     setSaveState('saving');
@@ -49,7 +68,7 @@ export function EditorScreen({ templateId }: { templateId: string }) {
       }
     }, 350);
     return () => window.clearTimeout(timeout);
-  }, [project]);
+  }, [cloudReady, project]);
 
   useEffect(() => {
     const dialog = resetDialogRef.current;
