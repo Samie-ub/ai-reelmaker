@@ -2,6 +2,17 @@
 
 A local-first, responsive short-form video editor built with React, TypeScript, Remotion, and Vite. Build a 9:16 reel from editable scenes, direct it manually or with a local Llama model, preview frame-accurately, save automatically, and export a real WebM video in the browser.
 
+## Current capabilities
+
+- Create, reorder, duplicate, and remove up to eight independently styled scenes.
+- Edit scene copy, colors, alignment, duration, and entrance animation manually.
+- Generate a complete reel or rewrite one scene with local `llama3.2:latest`.
+- Preview the complete sequence with Remotion and export a 1080×1920 WebM locally.
+- Save continuously in the browser, with optional owner-isolated Supabase sync.
+- Learn from successful exports through private pgvector retrieval without fine-tuning the model or uploading video media.
+
+The project is under active development. Browser storage is the default source of truth, WebM is the current export format, and permanent accounts, uploaded media, audio tracks, multi-track editing, and server-side MP4 rendering are not implemented yet.
+
 ## Run locally
 
 Requires Node.js 24+.
@@ -76,6 +87,13 @@ npm test
 npm run build
 npm audit --audit-level=moderate
 ```
+
+## Repository workflow
+
+- `main` is the production branch.
+- `dev` is the integration branch.
+- Feature and maintenance work is committed and pushed to focused working branches for owner review.
+- Contributors must keep this README current whenever a major capability or its setup, configuration, security, deployment, or operational requirements change. The complete working agreement is in [AGENTS.md](AGENTS.md).
 
 ## Production container
 
