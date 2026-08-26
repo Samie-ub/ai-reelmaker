@@ -67,6 +67,26 @@ npm run build
 Report any check that could not be run and the reason. Do not describe failing
 or skipped checks as passing.
 
+## Documentation Maintenance
+
+Treat `README.md` as the current entry point for developers and operators. Keep
+it accurate as the application evolves.
+
+- Update `README.md` in the same working branch and commit whenever a change
+  introduces or materially changes a major capability, setup step, dependency,
+  environment variable, database migration, security requirement, deployment
+  process, developer command, or known limitation.
+- Update the relevant file under `docs/` as well when the change affects product
+  scope, architecture, security boundaries, or an established implementation
+  decision.
+- Keep installation and verification commands runnable, document safe example
+  values only, and never place credentials or private deployment details in
+  documentation.
+- README changes are not required for internal refactors or minor fixes that do
+  not change how users, developers, or operators understand or use the project.
+- Before committing a major change, explicitly check whether its documentation
+  is complete and report any intentionally deferred documentation.
+
 ## Git Safety
 
 - Preserve unrelated user changes already present in the working tree.
