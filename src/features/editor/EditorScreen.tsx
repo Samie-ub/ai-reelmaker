@@ -3,11 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { navigate } from '../../navigation';
 import type { AiGenerationRequest } from '../../domain/aiSuggestion';
-import { ACCENTS, ANIMATIONS, BACKGROUNDS, createProject, createScene, getProjectDuration, getTemplate, projectSchema, reelSceneSchema, type ReelProject, type ReelScene } from '../../domain/project';
+import { ACCENTS, ANIMATIONS, BACKGROUNDS, createProject, createScene, ensureReadableTextColor, getProjectDuration, getSecondaryTextColor, getTemplate, projectSchema, reelSceneSchema, type ReelProject, type ReelScene } from '../../domain/project';
 import { projectRepository } from '../../infrastructure/projectRepository';
 import { generateReelSuggestion } from '../../infrastructure/ollamaReelGenerator';
 import { aiMemory } from '../../infrastructure/aiMemory';
 import { cloudProjectRepository } from '../../infrastructure/cloudProjectRepository';
+import { findRelevantCreativeRecipes } from '../../infrastructure/creativeRecipes';
 import { Logo } from '../../ui/Logo';
 import { ReelComposition } from '../../video/ReelComposition';
 import { ExportDialog } from './ExportDialog';
@@ -98,14 +99,33 @@ export function EditorScreen({ templateId }: { templateId: string }) {
   const sceneStartFrame = (index: number) => project.scenes.slice(0, index).reduce((total, item) => total + item.duration * 30, 0);
   const selectScene = (id: string, index: number) => { setSelectedSceneId(id); playerRef.current?.seekTo(sceneStartFrame(index)); };
   const changeScene = <K extends keyof ReelScene>(key: K, value: ReelScene[K]) => setProject((current) => current ? { ...current, scenes: current.scenes.map((item) => item.id === scene.id ? { ...item, [key]: value } : item), updatedAt: Date.now() } : current);
+  const changeBackground = (background: string) => setProject((current) => current ? {
+    ...current,
+    scenes: current.scenes.map((item) => item.id === scene.id ? {
+      ...item,
+      background,
+      textColor: ensureReadableTextColor(item.textColor, background),
+      secondaryTextColor: ensureReadableTextColor(item.secondaryTextColor, background),
+    } : item),
+    updatedAt: Date.now(),
+  } : current);
+  const resetTextColors = () => setProject((current) => current ? {
+    ...current,
+    scenes: current.scenes.map((item) => item.id === scene.id ? {
+      ...item,
+      textColor: ensureReadableTextColor('#ffffff', item.background),
+      secondaryTextColor: getSecondaryTextColor(item.background),
+    } : item),
+    updatedAt: Date.now(),
+  } : current);
   const addScene = () => {
     if (project.scenes.length >= 8) return;
-    const next = createScene({ title: 'New scene', subtitle: 'Add the next beat of your story.', accent: scene.accent, background: scene.background, alignment: scene.alignment, duration: 4, animation: scene.animation });
+    const next = createScene({ title: 'New scene', subtitle: 'Add the next beat of your story.', accent: scene.accent, background: scene.background, textColor: scene.textColor, secondaryTextColor: scene.secondaryTextColor, alignment: scene.alignment, duration: 4, animation: scene.animation });
     setProject((current) => current ? { ...current, scenes: [...current.scenes, next], updatedAt: Date.now() } : current); setSelectedSceneId(next.id); playerRef.current?.seekTo(totalFrames);
   };
   const duplicateScene = () => {
     if (project.scenes.length >= 8) return;
-    const copy = createScene({ title: scene.title, subtitle: scene.subtitle, accent: scene.accent, background: scene.background, alignment: scene.alignment, duration: scene.duration, animation: scene.animation });
+    const copy = createScene({ title: scene.title, subtitle: scene.subtitle, accent: scene.accent, background: scene.background, textColor: scene.textColor, secondaryTextColor: scene.secondaryTextColor, alignment: scene.alignment, duration: scene.duration, animation: scene.animation });
     const copyStart = sceneStartFrame(selectedIndex) + scene.duration * 30;
     setProject((current) => current ? { ...current, scenes: [...current.scenes.slice(0, selectedIndex + 1), copy, ...current.scenes.slice(selectedIndex + 1)], updatedAt: Date.now() } : current); setSelectedSceneId(copy.id); playerRef.current?.seekTo(copyStart);
   };
@@ -147,10 +167,13 @@ export function EditorScreen({ templateId }: { templateId: string }) {
     setAiState({ status: 'loading' });
     try {
       const requestProject = project;
-      const memories = await aiMemory.findRelevantMemories(aiPrompt, requestProject.templateId, mode);
+      const [memories, recipes] = await Promise.all([
+        aiMemory.findRelevantMemories(aiPrompt, requestProject.templateId, mode),
+        findRelevantCreativeRecipes(aiPrompt, requestProject.templateId),
+      ]);
       const generationRequest: AiGenerationRequest = mode === 'scene'
-        ? { mode, userPrompt: aiPrompt, project: requestProject, selectedSceneId: scene.id, memories }
-        : { mode, userPrompt: aiPrompt, project: requestProject, memories };
+        ? { mode, userPrompt: aiPrompt, project: requestProject, selectedSceneId: scene.id, memories, recipes }
+        : { mode, userPrompt: aiPrompt, project: requestProject, memories, recipes };
       const result = await generateReelSuggestion(generationRequest);
       const current = projectRef.current;
       if (!current) throw new Error('The project is no longer available.');
@@ -213,8 +236,9 @@ export function EditorScreen({ templateId }: { templateId: string }) {
           <div className="property-group"><label htmlFor="headline">Headline <span>{scene.title.length}/72</span></label><textarea id="headline" rows={3} value={scene.title} aria-invalid={Boolean(issues.title)} aria-describedby={issues.title ? 'headline-error' : undefined} onChange={(event) => changeScene('title', event.target.value)} />{issues.title && <small className="field-error" id="headline-error">{issues.title}</small>}</div>
           <div className="property-group"><label htmlFor="subtitle">Supporting text <span>{scene.subtitle.length}/120</span></label><textarea id="subtitle" rows={3} value={scene.subtitle} aria-invalid={Boolean(issues.subtitle)} onChange={(event) => changeScene('subtitle', event.target.value)} /></div>
           <fieldset className="property-group"><legend>Text alignment</legend><div className="segmented-control"><button className={scene.alignment === 'left' ? 'selected' : ''} aria-pressed={scene.alignment === 'left'} onClick={() => changeScene('alignment', 'left')}><AlignLeft size={17} /> Left</button><button className={scene.alignment === 'center' ? 'selected' : ''} aria-pressed={scene.alignment === 'center'} onClick={() => changeScene('alignment', 'center')}><AlignCenter size={17} /> Center</button></div></fieldset>
-          <fieldset className="property-group"><legend>Accent color</legend><div className="swatches">{ACCENTS.map((color) => <button key={color} aria-label={`Use accent ${color}`} aria-pressed={scene.accent === color} className={scene.accent === color ? 'selected' : ''} style={{ '--swatch': color } as React.CSSProperties} onClick={() => changeScene('accent', color)}><i /></button>)}</div></fieldset>
-          <fieldset className="property-group"><legend>Background</legend><div className="swatches">{BACKGROUNDS.map((color) => <button key={color} aria-label={`Use background ${color}`} aria-pressed={scene.background === color} className={scene.background === color ? 'selected' : ''} style={{ '--swatch': color } as React.CSSProperties} onClick={() => changeScene('background', color)}><i /></button>)}</div></fieldset>
+          <fieldset className="property-group"><legend>Accent color</legend><div className="swatches">{ACCENTS.map((color) => <button key={color} aria-label={`Use accent ${color}`} aria-pressed={scene.accent === color} className={scene.accent === color ? 'selected' : ''} style={{ '--swatch': color } as React.CSSProperties} onClick={() => changeScene('accent', color)}><i /></button>)}</div><label className="color-picker-row">Custom accent <input aria-label="Custom accent color" type="color" value={scene.accent} onChange={(event) => changeScene('accent', event.target.value)} /><code>{scene.accent}</code></label></fieldset>
+          <fieldset className="property-group"><legend>Background</legend><div className="swatches">{BACKGROUNDS.map((color) => <button key={color} aria-label={`Use background ${color}`} aria-pressed={scene.background === color} className={scene.background === color ? 'selected' : ''} style={{ '--swatch': color } as React.CSSProperties} onClick={() => changeBackground(color)}><i /></button>)}</div><label className="color-picker-row">Custom background <input aria-label="Custom background color" type="color" value={scene.background} onChange={(event) => changeBackground(event.target.value)} /><code>{scene.background}</code></label></fieldset>
+          <fieldset className="property-group theme-text-colors"><legend>Text colors</legend><label className="color-picker-row">Primary text <input aria-label="Primary text color" type="color" value={scene.textColor} onChange={(event) => changeScene('textColor', ensureReadableTextColor(event.target.value, scene.background))} /><code>{scene.textColor}</code></label><label className="color-picker-row">Supporting text <input aria-label="Supporting text color" type="color" value={scene.secondaryTextColor} onChange={(event) => changeScene('secondaryTextColor', ensureReadableTextColor(event.target.value, scene.background))} /><code>{scene.secondaryTextColor}</code></label><button className="contrast-reset" onClick={resetTextColors}>Use readable defaults</button></fieldset>
           <div className="property-group select-control"><label htmlFor="animation">Entrance animation</label><select id="animation" value={scene.animation} onChange={(event) => changeScene('animation', event.target.value as ReelScene['animation'])}>{ANIMATIONS.map((animation) => <option key={animation} value={animation}>{animationLabels[animation]}</option>)}</select></div>
           <div className="scene-property-actions"><button onClick={duplicateScene} disabled={project.scenes.length >= 8}><Copy size={15} /> Duplicate</button><button onClick={removeScene} disabled={project.scenes.length === 1}><Trash2 size={15} /> Delete</button></div>
           <button className="reset-button" onClick={() => setResetOpen(true)}><RotateCcw size={16} /> Reset project</button>

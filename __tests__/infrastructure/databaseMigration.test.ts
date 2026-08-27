@@ -1,5 +1,6 @@
 import migration from '../../supabase/migrations/20260826000000_reelmaker_learning.sql?raw';
 import aiWorkflowMigration from '../../supabase/migrations/20260827000000_ai_workflow_foundation.sql?raw';
+import creativeRecipesMigration from '../../supabase/migrations/20260827010000_creative_recipes.sql?raw';
 
 describe('database migration', () => {
   it('creates the project, history, feedback, and vector memory tables', () => {
@@ -29,5 +30,15 @@ describe('database migration', () => {
     expect(aiWorkflowMigration).toContain('projects.template_id = query_template');
     expect(aiWorkflowMigration).toContain('memories.generation_mode = query_mode');
     expect(aiWorkflowMigration).toContain('>= minimum_similarity');
+  });
+
+  it('creates a read-only curated creative recipe catalog with production seed data', () => {
+    expect(creativeRecipesMigration).toContain('create table public.creative_recipes');
+    expect(creativeRecipesMigration).toContain('enable row level security');
+    expect(creativeRecipesMigration).toContain('grant select on public.creative_recipes to authenticated');
+    expect(creativeRecipesMigration).toContain("'signal-neon-purple'");
+    expect(creativeRecipesMigration).toContain("'editorial-luxury-gold'");
+    expect(creativeRecipesMigration).toContain("'metric-tech-cyan'");
+    expect(creativeRecipesMigration.match(/^ {2}\(/gmu)).toHaveLength(12);
   });
 });

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 
-const REQUIRED_TABLES = ['projects', 'project_versions', 'ai_generations', 'generation_feedback', 'reel_memories'];
+const REQUIRED_TABLES = ['projects', 'project_versions', 'ai_generations', 'generation_feedback', 'reel_memories', 'creative_recipes'];
 const EMBEDDING_DIMENSIONS = 768;
 const apiOnly = process.argv.includes('--api-only');
 const writeTest = process.argv.includes('--write-test');
@@ -42,25 +42,25 @@ const timedFetch = (input, init = {}) => fetch(input, {
 
 const verifyWrites = async (client, ownerId) => {
   const document = {
-    version: 2, templateId: 'signal', updatedAt: Date.now(),
-    scenes: [{ id: 'database-smoke-test', title: 'Database smoke test', subtitle: 'Temporary verification record', accent: '#faff69', background: '#0a0a0a', alignment: 'left', duration: 2, animation: 'fade' }],
+    version: 3, templateId: 'signal', updatedAt: Date.now(),
+    scenes: [{ id: 'database-smoke-test', title: 'Database smoke test', subtitle: 'Temporary verification record', accent: '#faff69', background: '#0a0a0a', textColor: '#ffffff', secondaryTextColor: '#c7c7c7', alignment: 'left', duration: 2, animation: 'fade' }],
   };
   let projectId;
   try {
     const { data: project, error: projectError } = await client.from('projects').insert({
-      owner_id: ownerId, title: 'ReelMaker database smoke test', template_id: 'signal', schema_version: 2, document,
+      owner_id: ownerId, title: 'ReelMaker database smoke test', template_id: 'signal', schema_version: 3, document,
     }).select('id').single();
     if (projectError) throw new Error(`projects write: ${projectError.message}`);
     projectId = project.id;
 
     const { data: version, error: versionError } = await client.from('project_versions').insert({
-      project_id: projectId, owner_id: ownerId, schema_version: 2, document, source: 'export',
+      project_id: projectId, owner_id: ownerId, schema_version: 3, document, source: 'export',
     }).select('id').single();
     if (versionError) throw new Error(`project_versions write: ${versionError.message}`);
 
     const { data: generation, error: generationError } = await client.from('ai_generations').insert({
       project_id: projectId, owner_id: ownerId, mode: 'project', model: 'llama3.2:latest',
-      prompt_version: 'reelmaker-v2', prompt: 'Temporary database verification prompt',
+      prompt_version: 'reelmaker-v3', prompt: 'Temporary database verification prompt',
       response: { scenes: document.scenes, warnings: [] },
     }).select('id').single();
     if (generationError) throw new Error(`ai_generations write: ${generationError.message}`);

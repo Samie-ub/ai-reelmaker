@@ -15,7 +15,7 @@ const appliedGenerationSchema = z.object({
 
 export const projectMemoryText = (project: ReelProject) => [
   `Template: ${project.templateId}`,
-  ...project.scenes.map((scene, index) => `Scene ${index + 1}: ${scene.title.replace('\n', ' ')} | ${scene.subtitle} | ${scene.duration}s | ${scene.animation} | ${scene.alignment} | accent ${scene.accent} | background ${scene.background}`),
+  ...project.scenes.map((scene, index) => `Scene ${index + 1}: ${scene.title.replace('\n', ' ')} | ${scene.subtitle} | ${scene.duration}s | ${scene.animation} | ${scene.alignment} | accent ${scene.accent} | background ${scene.background} | text ${scene.textColor} | supporting text ${scene.secondaryTextColor}`),
 ].join('\n');
 
 const editedFields = (generatedScenes: ReelProject['scenes'], currentScenes: ReelProject['scenes']) => {
@@ -26,7 +26,7 @@ const editedFields = (generatedScenes: ReelProject['scenes'], currentScenes: Ree
   for (const generated of generatedScenes) {
     const current = currentById.get(generated.id);
     if (!current) { fields.add('scenes'); continue; }
-    for (const field of ['title', 'subtitle', 'accent', 'background', 'alignment', 'duration', 'animation'] as const) {
+    for (const field of ['title', 'subtitle', 'accent', 'background', 'textColor', 'secondaryTextColor', 'alignment', 'duration', 'animation'] as const) {
       if (generated[field] !== current[field]) fields.add(field);
     }
   }

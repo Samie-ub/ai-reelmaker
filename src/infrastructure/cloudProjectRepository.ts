@@ -1,5 +1,5 @@
 import type { AiGenerationMode, AiGenerationResult } from '../domain/aiSuggestion';
-import { projectSchema, type ReelProject, type TemplateId } from '../domain/project';
+import { migrateProjectDocument, type ReelProject, type TemplateId } from '../domain/project';
 import { ensureDatabaseUser, getSupabaseClient, isDatabaseConfigured } from './supabaseClient';
 
 const CLOUD_PROJECT_KEY = 'reelmaker.cloud.project-id.v1';
@@ -17,16 +17,16 @@ class CloudProjectRepository {
     if (storedId) {
       const { data, error } = await client.from('projects').select('id, document').eq('id', storedId).eq('owner_id', user.id).maybeSingle();
       if (error) throw error;
-      const storedProject = projectSchema.safeParse(data?.document);
-      if (storedProject.success && storedProject.data.templateId === templateId) return storedProject.data;
+      const storedProject = migrateProjectDocument(data?.document);
+      if (storedProject?.templateId === templateId) return storedProject;
     }
 
     const { data, error } = await client.from('projects').select('id, document').eq('owner_id', user.id).eq('template_id', templateId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
     if (error) throw error;
-    const latestProject = projectSchema.safeParse(data?.document);
-    if (!data?.id || !latestProject.success) return null;
+    const latestProject = migrateProjectDocument(data?.document);
+    if (!data?.id || !latestProject) return null;
     window.localStorage.setItem(CLOUD_PROJECT_KEY, data.id as string);
-    return latestProject.data;
+    return latestProject;
   }
 
   async saveProject(project: ReelProject): Promise<string | null> {

@@ -1,4 +1,5 @@
 import { createProject, createScene, templates } from '../../src/domain/project';
+import { DEFAULT_CREATIVE_RECIPES } from '../../src/domain/creativeRecipe';
 import { generateReelSuggestion } from '../../src/infrastructure/ollamaReelGenerator';
 
 const runLiveEvaluations = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.RUN_OLLAMA_EVALS === '1';
@@ -45,5 +46,25 @@ describe.skipIf(!runLiveEvaluations)('live Ollama AI workflow evaluation', () =>
     });
     expect(result.suggestion.scenes.length).toBeGreaterThan(0);
     expect(result.suggestion.scenes.length).toBeLessThanOrEqual(5);
+  }, 120_000);
+
+  it('preserves an explicit custom color theme', async () => {
+    const result = await generateReelSuggestion({
+      mode: 'project', project,
+      userPrompt: 'Create a fashion launch using background exactly #2e1065 and accent exactly #c084fc in every scene.',
+    });
+    expect(result.suggestion.scenes.every((scene) => scene.background === '#2e1065')).toBe(true);
+    expect(result.suggestion.scenes.every((scene) => scene.accent === '#c084fc')).toBe(true);
+  }, 120_000);
+
+  it('applies a matching curated recipe for a named color theme', async () => {
+    const purpleRecipe = DEFAULT_CREATIVE_RECIPES.find((recipe) => recipe.id === 'signal-neon-purple');
+    expect(purpleRecipe).toBeDefined();
+    const result = await generateReelSuggestion({
+      mode: 'project', project, recipes: purpleRecipe ? [purpleRecipe] : [],
+      userPrompt: 'Create a neon purple and lavender fashion launch using the matching curated design recipe consistently.',
+    });
+    expect(result.suggestion.scenes.every((scene) => scene.background === '#1e0a3c')).toBe(true);
+    expect(result.suggestion.scenes.every((scene) => scene.accent === '#c084fc')).toBe(true);
   }, 120_000);
 });

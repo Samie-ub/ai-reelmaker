@@ -57,16 +57,17 @@ describe('cloud project repository', () => {
     supabaseMocks.getSupabaseClient.mockReturnValue({ from: vi.fn(() => ({ insert })) });
     const result = {
       model: 'llama3.2:latest' as const,
-      promptVersion: 'reelmaker-v2' as const,
+      promptVersion: 'reelmaker-v3' as const,
       suggestion: { scenes: project.scenes.map((scene) => ({
         title: scene.title, subtitle: scene.subtitle, accent: scene.accent, background: scene.background,
+        textColor: scene.textColor, secondaryTextColor: scene.secondaryTextColor,
         alignment: scene.alignment, duration: scene.duration, animation: scene.animation,
       })), warnings: [] },
     };
 
     await expect(cloudProjectRepository.recordGeneration(project, 'project', 'Create a launch', result)).resolves.toBe('generation-1');
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      model: 'llama3.2:latest', prompt_version: 'reelmaker-v2', response: result.suggestion,
+      model: 'llama3.2:latest', prompt_version: 'reelmaker-v3', response: result.suggestion,
     }));
   });
 

@@ -1,4 +1,4 @@
-import { createProject, getProjectDuration, projectSchema, templates, updateProject } from '../../src/domain/project';
+import { contrastRatio, createProject, createScene, getProjectDuration, projectSchema, templates, updateProject } from '../../src/domain/project';
 
 describe('project domain', () => {
   it('creates a valid project from every template', () => {
@@ -25,5 +25,21 @@ describe('project domain', () => {
     expect(projectSchema.safeParse({ ...project, scenes: [{ ...project.scenes[0], duration: 1 }] }).success).toBe(false);
     expect(projectSchema.safeParse({ ...project, scenes: [{ ...project.scenes[0], duration: 16 }] }).success).toBe(false);
     expect(getProjectDuration({ ...project, scenes: [project.scenes[0], { ...project.scenes[0], id: 'scene-2', duration: 4 }] })).toBe(14);
+  });
+
+  it('accepts custom hex themes and normalizes unreadable text colors', () => {
+    const scene = createScene({
+      title: 'Purple launch', subtitle: 'A custom theme', accent: '#c084fc', background: '#2e1065',
+      textColor: '#2e1065', secondaryTextColor: '#3b0764', alignment: 'left', duration: 6, animation: 'rise',
+    });
+    expect(scene.accent).toBe('#c084fc');
+    expect(contrastRatio(scene.textColor, scene.background)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(scene.secondaryTextColor, scene.background)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('rejects unsafe color formats', () => {
+    const project = createProject(templates[0]);
+    expect(projectSchema.safeParse({ ...project, scenes: [{ ...project.scenes[0], accent: 'purple' }] }).success).toBe(false);
+    expect(projectSchema.safeParse({ ...project, scenes: [{ ...project.scenes[0], background: 'url(javascript:alert(1))' }] }).success).toBe(false);
   });
 });

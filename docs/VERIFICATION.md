@@ -25,7 +25,7 @@ The in-app browser connector returned no available browser instance, so screensh
 - **1024px:** same compact editor composition with a larger preview stage and 290px properties panel; library remains two columns at the breakpoint.
 - **1440px:** full three-column editor (230px / fluid / 300px), three-card library grid, 1280px centered container, and full navigation/action labeling.
 
-Reviewed states: library default/filter/empty; editor saved/saving/invalid; selected template/alignment/accent; preview playback and scrub controls; reset confirmation; export idle/rendering/cancelled/error/success; unsupported video capability; missing template; fatal error recovery; hover/focus-visible/pressed/disabled; reduced motion.
+Reviewed states: library default/filter/empty; editor saved/saving/invalid; selected template/alignment/custom contrast-safe theme; preview playback and scrub controls; reset confirmation; export idle/rendering/cancelled/error/success; unsupported video capability; missing template; fatal error recovery; hover/focus-visible/pressed/disabled; reduced motion.
 
 Items that still require a browser-enabled QA pass before release:
 

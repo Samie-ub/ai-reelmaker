@@ -12,7 +12,7 @@ No AI subscription is required. Video rendering stays on your device, and cloud 
 
 Most AI video tools trade creative control for speed. ReelMaker keeps the generated result inside the same structured editor used for manual work, so every AI-created scene remains editable.
 
-- **Edit everything** — control copy, colors, alignment, timing, sequence, and motion.
+- **Edit everything** — control copy, custom color themes, alignment, timing, sequence, and motion.
 - **Use private AI** — generate locally with `llama3.2:latest` through Ollama.
 - **Work scene by scene** — create, drag to reorder, resize, duplicate, rewrite, or remove up to eight scenes.
 - **Edit timing where it happens** — drag a scene edge or enter its duration directly in the timeline, then click or drag the playhead to seek to an exact frame.
@@ -26,7 +26,7 @@ Most AI video tools trade creative control for speed. ReelMaker keeps the genera
 | --- | --- |
 | Canvas | Vertical 1080×1920 video at 30 fps |
 | Editing | Structured multi-scene editor with independent copy, styling, duration, and motion |
-| AI creation | Full-reel generation and selected-scene rewriting with local Llama 3.2 |
+| AI creation | Full-reel generation and selected-scene rewriting with exact color themes and curated design recipes |
 | Preview | Frame-accurate Remotion player with clickable, draggable playhead and editable sequence timeline |
 | Persistence | Immediate browser storage with optional owner-isolated Supabase sync |
 | AI memory | Local embeddings plus private pgvector retrieval from successful exports |
@@ -71,6 +71,8 @@ AI output is constrained to the same validated project schema used by manual con
 
 The AI workflow sends permanent ReelMaker capability rules separately from user-controlled copy and reference data. Full-reel generation and selected-scene rewriting use different output constraints, rewrites receive the complete surrounding reel, and unsupported requests such as music, footage, or publishing are surfaced as limitations instead of being silently promised.
 
+Color requests are first-class constraints. Named themes can use a matching curated recipe, explicit six-digit hex colors must be preserved in the generated palette, and primary/supporting text colors are normalized to readable contrast. Every theme color remains editable with native color controls.
+
 `embeddinggemma` is not required unless optional database sync and retrieval memory are enabled.
 
 ## Enable database sync and AI memory
@@ -89,7 +91,7 @@ npx supabase link --project-ref YOUR_PROJECT_REF
 npx supabase db push
 ```
 
-The migration is located at [`supabase/migrations/20260826000000_reelmaker_learning.sql`](supabase/migrations/20260826000000_reelmaker_learning.sql).
+Migrations are located under [`supabase/migrations`](supabase/migrations). `supabase db push` applies the project persistence, AI workflow, and curated creative recipe migrations in order.
 
 ### 3. Configure the browser client
 
@@ -119,6 +121,8 @@ npm run verify:database -- --write-test
 ```
 
 With database sync enabled, the editor keeps browser storage as its fast local source of truth, restores the matching cloud project when the local copy is unavailable, and continuously syncs valid edits. AI requests and structured responses are recorded. A successful video export stores a project version and searchable local embedding, and marks the latest AI generation as exported. Video files remain on the user's device.
+
+The database also contains a read-only catalog of 12 curated recipes covering launch, editorial, and metric layouts. Recipes provide palettes, style/use-case tags, motion, alignment, copy direction, and composition guidance. ReelMaker falls back to the same bundled catalog when Supabase is unavailable.
 
 ### How memory works
 

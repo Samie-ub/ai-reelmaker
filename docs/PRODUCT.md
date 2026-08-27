@@ -55,7 +55,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - Remotion composition and player using shared typed project data.
 - Local draft persistence with schema validation and stale/corrupt-state recovery.
 - Real local MP4 export from the shared Remotion composition with feature detection, progress, cancellation, and failure states.
-- Optional local Ollama assistance for the same copy, palette, alignment, duration, and animation fields exposed to manual editing, with whole-reel and selected-scene modes, strict schema validation, and no generated executable code.
+- Optional local Ollama assistance for the same copy, custom contrast-safe theme, alignment, duration, and animation fields exposed to manual editing, with whole-reel and selected-scene modes, curated creative recipes, strict schema validation, and no generated executable code.
 - Optional Supabase project synchronization, generation history, export snapshots, and owner-scoped pgvector retrieval memory, while preserving uninterrupted local-only operation.
 - Accessible keyboard navigation, focus visibility, dialog focus management, labels, reduced motion, and 44px primary touch targets.
 - Strict type checking, linting, unit/integration tests, and production build.
@@ -111,7 +111,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 
 Data flows from immutable templates into a validated `ReelProject` containing one to eight ordered scenes. The editor and Ollama adapter both produce the same scene contract. The editor owns transient state, saves through the persistence adapter, and passes the same project into the Remotion composition and export renderer. No UI component reads storage directly.
 
-AI generation sits behind a typed orchestration boundary. Full-reel and selected-scene requests carry explicit operation modes, current project context, a versioned capability prompt, and separately marked retrieval references. Each mode has its own output cardinality rules, followed by semantic validation before the result can replace editor state. Generation lineage is associated with the applied scene revision so later edits and exports can be attributed without global in-memory state. See [`AI_WORKFLOW.md`](AI_WORKFLOW.md) for the complete request and evaluation contract.
+AI generation sits behind a typed orchestration boundary. Full-reel and selected-scene requests carry explicit operation modes, current project context, a versioned capability prompt, separately marked retrieval references, and ranked creative recipes limited to renderer-supported controls. Each mode has its own output cardinality rules, followed by semantic and requested-color validation before the result can replace editor state. Generation lineage is associated with the applied scene revision so later edits and exports can be attributed without global in-memory state. See [`AI_WORKFLOW.md`](AI_WORKFLOW.md) for the complete request and evaluation contract.
 
 ### Security and data boundaries
 

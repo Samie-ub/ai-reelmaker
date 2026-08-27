@@ -5,8 +5,8 @@ import type { ReelScene } from '../../src/domain/project';
 import { SceneTimeline } from '../../src/features/editor/SceneTimeline';
 
 const scenes: ReelScene[] = [
-  { id: 'one', title: 'Opening beat', subtitle: '', accent: '#faff69', background: '#0a0a0a', alignment: 'left', duration: 4, animation: 'rise' },
-  { id: 'two', title: 'Closing beat', subtitle: '', accent: '#3b82f6', background: '#172554', alignment: 'center', duration: 2, animation: 'fade' },
+  { id: 'one', title: 'Opening beat', subtitle: '', accent: '#faff69', background: '#0a0a0a', textColor: '#ffffff', secondaryTextColor: '#c7c7c7', alignment: 'left', duration: 4, animation: 'rise' },
+  { id: 'two', title: 'Closing beat', subtitle: '', accent: '#3b82f6', background: '#172554', textColor: '#ffffff', secondaryTextColor: '#dbeafe', alignment: 'center', duration: 2, animation: 'fade' },
 ];
 
 const renderTimeline = () => {

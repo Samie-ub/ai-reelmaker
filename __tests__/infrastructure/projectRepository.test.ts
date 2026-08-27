@@ -12,10 +12,10 @@ describe('LocalProjectRepository', () => {
   });
 
   it('removes corrupt or stale persisted state instead of throwing', () => {
-    window.localStorage.setItem('reelmaker.project.v2', JSON.stringify({ version: 99, title: '<script>' }));
+    window.localStorage.setItem('reelmaker.project.v3', JSON.stringify({ version: 99, title: '<script>' }));
     const repository = new LocalProjectRepository();
     expect(repository.load()).toBeNull();
-    expect(window.localStorage.getItem('reelmaker.project.v2')).toBeNull();
+    expect(window.localStorage.getItem('reelmaker.project.v3')).toBeNull();
   });
 
   it('recovers from invalid JSON', () => {
@@ -30,8 +30,20 @@ describe('LocalProjectRepository', () => {
     }));
 
     const project = new LocalProjectRepository().load();
-    expect(project).toMatchObject({ version: 2, templateId: 'signal', scenes: [{ title: 'Legacy launch', animation: 'rise' }] });
+    expect(project).toMatchObject({ version: 3, templateId: 'signal', scenes: [{ title: 'Legacy launch', animation: 'rise', textColor: '#ffffff' }] });
     expect(window.localStorage.getItem('reelmaker.project.v1')).toBeNull();
-    expect(window.localStorage.getItem('reelmaker.project.v2')).not.toBeNull();
+    expect(window.localStorage.getItem('reelmaker.project.v3')).not.toBeNull();
+  });
+
+  it('migrates an existing v2 project to contrast-safe custom themes', () => {
+    window.localStorage.setItem('reelmaker.project.v2', JSON.stringify({
+      version: 2, templateId: 'editorial', updatedAt: 123,
+      scenes: [{ id: 'old-scene', title: 'Existing draft', subtitle: 'Keep my work', accent: '#ffffff', background: '#ededeb', alignment: 'center', duration: 8, animation: 'fade' }],
+    }));
+
+    const project = new LocalProjectRepository().load();
+    expect(project).toMatchObject({ version: 3, scenes: [{ id: 'old-scene', textColor: '#0a0a0a' }] });
+    expect(window.localStorage.getItem('reelmaker.project.v2')).toBeNull();
+    expect(window.localStorage.getItem('reelmaker.project.v3')).not.toBeNull();
   });
 });
