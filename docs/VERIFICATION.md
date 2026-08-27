@@ -1,6 +1,6 @@
 # Verification report
 
-Date: 2026-08-26
+Date: 2026-08-27
 
 ## Automated checks
 
@@ -8,8 +8,8 @@ Date: 2026-08-26
 |---|---|---|
 | Strict TypeScript | Pass | `npm run typecheck` completed with no diagnostics. |
 | ESLint | Pass | `npm run lint` completed with zero warnings and errors. |
-| Tests | Pass | 11 files, 32 tests covering domain validation, local and cloud persistence recovery, owner-scoped AI feedback, library/editor behavior, deterministic local AI, embedding memory, migration security, shared-composition MP4 rendering, test-environment isolation, and unsupported export capability. |
-| Production build | Pass with size warning | Vite 8.2 produced a 0.58KB HTML shell, 23.41KB CSS, a 742.72KB main JS chunk (217.62KB gzip), and lazy browser-renderer codec chunks. Chunk-size optimization remains follow-up work. |
+| Tests | Pass | 12 files, 37 tests covering domain validation, local and cloud persistence recovery, owner-scoped AI feedback, library/editor and interactive timeline behavior, deterministic local AI, embedding memory, migration security, shared-composition MP4 rendering, test-environment isolation, and unsupported export capability. |
+| Production build | Pass with size warning | Vite 8.2 produced a 0.58KB HTML shell, 24.86KB CSS, a 747.19KB main JS chunk (219.04KB gzip), and lazy browser-renderer codec chunks. Chunk-size optimization remains follow-up work. |
 | Dependency audit | Pass | `npm audit --audit-level=moderate` reported zero vulnerabilities. |
 | Supabase API connection | Pass | `npm run verify:database -- --api-only` reached Auth and PostgREST; unauthenticated database access is correctly blocked. |
 | Supabase application access | Pass | `npm run verify:database` authenticated anonymously and verified all five owner-scoped tables, Row Level Security access, and the 768-dimension pgvector search function. |

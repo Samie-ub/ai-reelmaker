@@ -61,7 +61,8 @@ describe('editor', () => {
     expect(await screen.findByText('2 editable AI scenes applied.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /Headline/ })).toHaveValue('Brewed for\nafter dark.');
     expect(screen.getByRole('textbox', { name: /Supporting text/ })).toHaveValue('A bolder coffee for the hours when ideas refuse to sleep.');
-    expect(screen.getByRole('slider', { name: /Scene duration/ })).toHaveValue('6');
+    expect(screen.getByRole('spinbutton', { name: /Brewed for after dark.*duration/i })).toHaveValue(6);
+    expect(screen.queryByRole('slider', { name: /Scene duration/ })).not.toBeInTheDocument();
     expect(screen.getByText('2/8')).toBeInTheDocument();
   });
 
