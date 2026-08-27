@@ -10,6 +10,7 @@ import { cloudProjectRepository } from '../../infrastructure/cloudProjectReposit
 import { Logo } from '../../ui/Logo';
 import { ReelComposition } from '../../video/ReelComposition';
 import { ExportDialog } from './ExportDialog';
+import { SceneTimeline } from './SceneTimeline';
 
 const animationLabels: Record<ReelScene['animation'], string> = { rise: 'Rise up', fade: 'Fade in', scale: 'Scale in', 'slide-left': 'Slide from right' };
 
@@ -118,6 +119,25 @@ export function EditorScreen({ templateId }: { templateId: string }) {
     const targetFrame = scenes.slice(0, target).reduce((total, item) => total + item.duration * 30, 0);
     setProject({ ...project, scenes, updatedAt: Date.now() }); playerRef.current?.seekTo(targetFrame);
   };
+  const reorderScene = (sourceId: string, targetId: string) => {
+    const sourceIndex = project.scenes.findIndex((item) => item.id === sourceId);
+    const targetIndex = project.scenes.findIndex((item) => item.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+    const scenes = [...project.scenes];
+    const [moved] = scenes.splice(sourceIndex, 1);
+    scenes.splice(targetIndex, 0, moved);
+    const movedIndex = scenes.findIndex((item) => item.id === sourceId);
+    const targetFrame = scenes.slice(0, movedIndex).reduce((total, item) => total + item.duration * 30, 0);
+    setProject({ ...project, scenes, updatedAt: Date.now() });
+    setSelectedSceneId(sourceId);
+    playerRef.current?.seekTo(targetFrame);
+  };
+  const changeSceneDuration = (id: string, nextDuration: number) => {
+    const scenes = project.scenes.map((item) => item.id === id ? { ...item, duration: nextDuration } : item);
+    const nextTotalFrames = scenes.reduce((total, item) => total + item.duration * 30, 0);
+    setProject({ ...project, scenes, updatedAt: Date.now() });
+    if (frame >= nextTotalFrames) playerRef.current?.seekTo(Math.max(0, nextTotalFrames - 1));
+  };
   const reset = () => { const next = createProject(template); setProject(next); setSelectedSceneId(next.scenes[0].id); setResetOpen(false); playerRef.current?.seekTo(0); };
   const generateWithAi = async (mode: 'project' | 'scene' = 'project') => {
     if (!aiPrompt.trim() || aiState.status === 'loading') return;
@@ -180,15 +200,11 @@ export function EditorScreen({ templateId }: { templateId: string }) {
           <fieldset className="property-group"><legend>Accent color</legend><div className="swatches">{ACCENTS.map((color) => <button key={color} aria-label={`Use accent ${color}`} aria-pressed={scene.accent === color} className={scene.accent === color ? 'selected' : ''} style={{ '--swatch': color } as React.CSSProperties} onClick={() => changeScene('accent', color)}><i /></button>)}</div></fieldset>
           <fieldset className="property-group"><legend>Background</legend><div className="swatches">{BACKGROUNDS.map((color) => <button key={color} aria-label={`Use background ${color}`} aria-pressed={scene.background === color} className={scene.background === color ? 'selected' : ''} style={{ '--swatch': color } as React.CSSProperties} onClick={() => changeScene('background', color)}><i /></button>)}</div></fieldset>
           <div className="property-group select-control"><label htmlFor="animation">Entrance animation</label><select id="animation" value={scene.animation} onChange={(event) => changeScene('animation', event.target.value as ReelScene['animation'])}>{ANIMATIONS.map((animation) => <option key={animation} value={animation}>{animationLabels[animation]}</option>)}</select></div>
-          <div className="property-group duration-control"><label htmlFor="duration">Scene duration <span>{scene.duration}s</span></label><input id="duration" type="range" min="2" max="15" step="1" value={scene.duration} onChange={(event) => changeScene('duration', Number(event.target.value))} /><div><span>2s</span><span>15s</span></div></div>
           <div className="scene-property-actions"><button onClick={duplicateScene} disabled={project.scenes.length >= 8}><Copy size={15} /> Duplicate</button><button onClick={removeScene} disabled={project.scenes.length === 1}><Trash2 size={15} /> Delete</button></div>
           <button className="reset-button" onClick={() => setResetOpen(true)}><RotateCcw size={16} /> Reset project</button>
         </aside>
 
-        <section className="timeline" aria-label="Timeline">
-          <div className="timeline-heading"><span>Scene timeline</span><span>{frame + 1} / {totalFrames} frames</span></div>
-          <div className="timeline-body scene-timeline-body"><div className="track-labels"><span>Scenes</span></div><div className="tracks"><div className="ruler">{[0, .25, .5, .75, 1].map((point) => <span key={point} style={{ left: `${point * 100}%` }}>{Math.round(duration * point)}s</span>)}</div><div className="timeline-scenes">{project.scenes.map((item, index) => <button key={item.id} className={`clip scene-clip ${item.id === scene.id ? 'selected' : ''}`} style={{ width: `${(item.duration / duration) * 100}%`, background: item.accent }} onClick={() => selectScene(item.id, index)}><span>{index + 1}</span>{item.title.replace('\n', ' ')}</button>)}</div><i className="playhead" style={{ left: `${(frame / Math.max(1, totalFrames - 1)) * 100}%` }} /></div></div>
-        </section>
+        <SceneTimeline scenes={project.scenes} selectedSceneId={scene.id} frame={frame} onSelect={setSelectedSceneId} onSeek={(nextFrame) => playerRef.current?.seekTo(nextFrame)} onReorder={reorderScene} onDurationChange={changeSceneDuration} />
       </main>
 
       <ExportDialog project={project} open={exportOpen} onClose={() => setExportOpen(false)} />

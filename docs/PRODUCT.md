@@ -33,7 +33,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - Browser video encoding varies by codec and device; the current local H.264 MP4 export must feature-detect WebCodecs support and recover cleanly.
 - Remotion's production MP4 renderer is a server-side workload with Chromium, storage, queueing, and cost controls; it is intentionally behind an adapter boundary.
 - Browser storage can be cleared and is not cross-device. Drafts must be treated as recoverable convenience, not durable storage.
-- Rendering can be CPU intensive. Duration is constrained to 6–30 seconds and export has visible progress/cancel handling.
+- Rendering can be CPU intensive. Each scene is constrained to 2–15 seconds (up to eight scenes), and export has visible progress/cancel handling.
 - User-authored text is untrusted. It is rendered as React text content, validated by schema, and never interpreted as HTML.
 
 ## Scope
@@ -42,8 +42,8 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 
 1. Open the template library and inspect reusable template cards.
 2. Choose a template and enter the editor with a valid starter project.
-3. Add, select, reorder, duplicate, or remove scenes and edit each scene's copy, palette, duration, alignment, and entrance animation.
-4. Play or scrub the exact 9:16 Remotion preview and inspect the timeline.
+3. Add, select, drag to reorder, duplicate, or remove scenes and edit each scene's copy, palette, alignment, and entrance animation.
+4. Resize a scene from its timeline edge or enter its duration inline, then play or seek the exact 9:16 Remotion preview by clicking or dragging the frame-accurate playhead.
 5. Export an H.264 MP4 locally from the preview composition, or download the project JSON for portability.
 6. Recover the latest valid draft after refresh.
 7. Optionally turn a natural-language brief into a validated scene sequence, or ask local Llama to rewrite only the selected scene.
@@ -83,7 +83,7 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 - **Focal point:** the portrait preview in a centered black stage; the yellow Export action remains visible in the header.
 - **Hierarchy/order:** editor header → controls/preview/properties workbench → timeline. Desktop is a 240px / flexible / 300px three-column workspace. Tablet moves templates into a horizontal rail. Mobile becomes preview-first with controls below and a horizontally scrollable timeline.
 - **Primary action:** Export video. Secondary actions: play/pause, change template, edit properties, download project, reset.
-- **Components:** template rail, aspect badge, Remotion Player, labeled fields, alignment group, duration range, swatches, timeline ruler/clips/playhead, export dialog, toast/status region.
+- **Components:** template rail, aspect badge, Remotion Player, labeled fields, alignment group, swatches, timeline ruler with draggable clips, edge-resize handles, inline duration inputs, draggable playhead, export dialog, toast/status region.
 - **States:** initial loading skeleton, empty/no-template recovery, validation errors, saved/saving status, export idle/rendering/success/error/cancelled, reset confirmation.
 - **Keyboard/focus:** native fields, Space handled by Player only when focused, arrow-accessible slider, dialog traps focus through native modal semantics, Escape closes dialogs, focus returns to invoking control.
 

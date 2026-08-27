@@ -14,7 +14,8 @@ Most AI video tools trade creative control for speed. ReelMaker keeps the genera
 
 - **Edit everything** — control copy, colors, alignment, timing, sequence, and motion.
 - **Use private AI** — generate locally with `llama3.2:latest` through Ollama.
-- **Work scene by scene** — create, reorder, duplicate, rewrite, or remove up to eight scenes.
+- **Work scene by scene** — create, drag to reorder, resize, duplicate, rewrite, or remove up to eight scenes.
+- **Edit timing where it happens** — drag a scene edge or enter its duration directly in the timeline, then click or drag the playhead to seek to an exact frame.
 - **Preview accurately** — use Remotion for deterministic, frame-based playback.
 - **Export locally** — render the exact preview composition as a 1080×1920 H.264 MP4 without uploading source media.
 - **Build useful memory** — optionally retrieve patterns from previously exported reels using PostgreSQL and pgvector.
@@ -26,7 +27,7 @@ Most AI video tools trade creative control for speed. ReelMaker keeps the genera
 | Canvas | Vertical 1080×1920 video at 30 fps |
 | Editing | Structured multi-scene editor with independent copy, styling, duration, and motion |
 | AI creation | Full-reel generation and selected-scene rewriting with local Llama 3.2 |
-| Preview | Frame-accurate Remotion player and sequence timeline |
+| Preview | Frame-accurate Remotion player with clickable, draggable playhead and editable sequence timeline |
 | Persistence | Immediate browser storage with optional owner-isolated Supabase sync |
 | AI memory | Local embeddings plus private pgvector retrieval from successful exports |
 | Export | Browser-rendered H.264 MP4 from the shared Remotion composition |
