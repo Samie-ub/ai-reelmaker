@@ -69,6 +69,8 @@ With ReelMaker and Ollama running, open **AI scene builder** in the properties p
 
 AI output is constrained to the same validated project schema used by manual controls. It cannot inject executable code into the composition. Requests are sent directly to `http://127.0.0.1:11434`; if the editor is hosted on a non-local origin, add that origin to Ollama's `OLLAMA_ORIGINS` configuration.
 
+The AI workflow sends permanent ReelMaker capability rules separately from user-controlled copy and reference data. Full-reel generation and selected-scene rewriting use different output constraints, rewrites receive the complete surrounding reel, and unsupported requests such as music, footage, or publishing are surfaced as limitations instead of being silently promised.
+
 `embeddinggemma` is not required unless optional database sync and retrieval memory are enabled.
 
 ## Enable database sync and AI memory
@@ -176,6 +178,7 @@ Additional commands:
 | --- | --- |
 | `npm run dev` | Start the Vite development server |
 | `npm run test:watch` | Run tests interactively while developing |
+| `npm run eval:ai` | Run the optional live instruction-following suite against local Ollama |
 | `npm run preview` | Preview the production build locally |
 | `npm run verify:database` | Verify the configured Supabase database and application access |
 
@@ -209,3 +212,5 @@ The current browser MP4 exporter and local-first workflow will remain useful fal
 - Major product or operational changes must update this README in the same branch.
 
 See [`AGENTS.md`](AGENTS.md) for the full working agreement and [`docs/PRODUCT.md`](docs/PRODUCT.md) for product scope, security boundaries, acceptance criteria, and the server-rendering upgrade path.
+
+The AI request contract, memory boundaries, and live evaluation workflow are documented in [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md).

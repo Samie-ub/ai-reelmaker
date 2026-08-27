@@ -1,12 +1,10 @@
 import { createProject, templates } from '../../src/domain/project';
-import { addMemoriesToBrief, aiMemory, projectMemoryText } from '../../src/infrastructure/aiMemory';
+import { aiMemory, projectMemoryText } from '../../src/infrastructure/aiMemory';
 import { cloudProjectRepository } from '../../src/infrastructure/cloudProjectRepository';
 
-describe('AI memory formatting', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
+describe('AI memory', () => {
+  beforeEach(() => window.localStorage.clear());
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   it('turns an exported project into searchable scene context', () => {
     const project = createProject(templates[0], 123);
@@ -16,33 +14,26 @@ describe('AI memory formatting', () => {
     expect(memory).toContain('10s | rise');
   });
 
-  it('adds retrieved examples without replacing the user brief', () => {
-    const result = addMemoriesToBrief('Launch a new coffee', [{ content: 'Scene 1: Start after dark', similarity: 0.86 }]);
-    expect(result).toContain('Launch a new coffee');
-    expect(result).toContain('Do not copy wording verbatim');
-    expect(result).toContain('similarity 0.86');
-  });
-
-  it('leaves a brief unchanged when no memory is available', () => {
-    expect(addMemoriesToBrief('Keep this exact brief', [])).toBe('Keep this exact brief');
-  });
-
-  it('marks the latest AI generation as exported after storing its memory', async () => {
-    const project = createProject(templates[0], 123);
-    const suggestion = { scenes: project.scenes.map((scene) => ({
-      title: scene.title, subtitle: scene.subtitle, accent: scene.accent, background: scene.background,
-      alignment: scene.alignment, duration: scene.duration, animation: scene.animation,
-    })) };
+  it('retrieves only memories matching the template and generation mode', async () => {
     vi.spyOn(cloudProjectRepository, 'isConfigured').mockReturnValue(true);
-    vi.spyOn(cloudProjectRepository, 'recordGeneration').mockResolvedValue('generation-1');
+    const find = vi.spyOn(cloudProjectRepository, 'findMemories').mockResolvedValue([{ content: 'A relevant reel', similarity: 0.84 }]);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ embeddings: [[0.1, 0.2]] }), { status: 200 })));
+
+    await expect(aiMemory.findRelevantMemories('Launch coffee', 'signal', 'project')).resolves.toHaveLength(1);
+    expect(find).toHaveBeenCalledWith([0.1, 0.2], 'embeddinggemma:latest', 'signal', 'project');
+  });
+
+  it('durably attributes an exported, manually edited project to its applied generation', async () => {
+    const generatedProject = createProject(templates[0], 123);
+    const exportedProject = { ...generatedProject, scenes: [{ ...generatedProject.scenes[0], title: 'Edited after AI' }] };
+    vi.spyOn(cloudProjectRepository, 'isConfigured').mockReturnValue(true);
     vi.spyOn(cloudProjectRepository, 'recordExportMemory').mockResolvedValue('memory-1');
     const feedback = vi.spyOn(cloudProjectRepository, 'recordGenerationFeedback').mockResolvedValue('feedback-1');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ embeddings: [[0.1, 0.2]] }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ embeddings: [[0.1, 0.2]] }), { status: 200 })));
 
-    await aiMemory.recordGeneration(project, 'project', 'Create a launch reel', suggestion);
-    await expect(aiMemory.rememberExport(project)).resolves.toBe('memory-1');
-    expect(feedback).toHaveBeenCalledWith('generation-1', 'exported');
+    aiMemory.trackAppliedGeneration(generatedProject, 'generation-1', 'project');
+    await expect(aiMemory.rememberExport(exportedProject)).resolves.toBe('memory-1');
+    expect(feedback).toHaveBeenCalledWith('generation-1', 'exported', ['title']);
+    expect(window.localStorage.getItem('reelmaker.ai.applied-generation.v1')).toBeNull();
   });
 });

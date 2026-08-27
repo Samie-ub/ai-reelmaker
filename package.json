@@ -10,6 +10,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval:ai": "RUN_OLLAMA_EVALS=1 vitest run __tests__/evaluation/aiWorkflow.eval.test.ts",
     "verify:database": "node scripts/verify-database.mjs",
     "preview": "vite preview"
   },

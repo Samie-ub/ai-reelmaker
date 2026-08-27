@@ -1,10 +1,8 @@
-import type { AiReelSuggestion } from '../domain/aiSuggestion';
+import type { AiGenerationMode, AiGenerationResult } from '../domain/aiSuggestion';
 import { projectSchema, type ReelProject, type TemplateId } from '../domain/project';
 import { ensureDatabaseUser, getSupabaseClient, isDatabaseConfigured } from './supabaseClient';
 
 const CLOUD_PROJECT_KEY = 'reelmaker.cloud.project-id.v1';
-export const GENERATION_MODEL = 'llama3.2:latest';
-
 export type RetrievedMemory = { content: string; similarity: number };
 
 class CloudProjectRepository {
@@ -53,13 +51,16 @@ class CloudProjectRepository {
     return id;
   }
 
-  async recordGeneration(project: ReelProject, mode: 'project' | 'scene', prompt: string, response: AiReelSuggestion) {
+  async recordGeneration(project: ReelProject, mode: AiGenerationMode, prompt: string, result: AiGenerationResult) {
     const client = getSupabaseClient();
     if (!client) return null;
     const user = await ensureDatabaseUser();
     const projectId = await this.saveProject(project);
     if (!projectId) return null;
-    const { data, error } = await client.from('ai_generations').insert({ project_id: projectId, owner_id: user.id, mode, model: GENERATION_MODEL, prompt, response }).select('id').single();
+    const { data, error } = await client.from('ai_generations').insert({
+      project_id: projectId, owner_id: user.id, mode, model: result.model,
+      prompt_version: result.promptVersion, prompt, response: result.suggestion,
+    }).select('id').single();
     if (error) throw error;
     return data.id as string;
   }
@@ -75,16 +76,19 @@ class CloudProjectRepository {
     return data.id as string;
   }
 
-  async findMemories(embedding: number[], embeddingModel: string, limit = 4): Promise<RetrievedMemory[]> {
+  async findMemories(embedding: number[], embeddingModel: string, templateId: TemplateId, mode: AiGenerationMode, limit = 4, minimumSimilarity = 0.72): Promise<RetrievedMemory[]> {
     const client = getSupabaseClient();
     if (!client) return [];
     await ensureDatabaseUser();
-    const { data, error } = await client.rpc('match_reel_memories', { query_embedding: embedding, query_model: embeddingModel, match_count: limit });
+    const { data, error } = await client.rpc('match_reel_memories', {
+      query_embedding: embedding, query_model: embeddingModel, query_template: templateId,
+      query_mode: mode, minimum_similarity: minimumSimilarity, match_count: limit,
+    });
     if (error) throw error;
     return (data ?? []).map((item: { content: string; similarity: number }) => ({ content: item.content, similarity: item.similarity }));
   }
 
-  async recordExportMemory(project: ReelProject, content: string, embedding: number[], embeddingModel: string) {
+  async recordExportMemory(project: ReelProject, content: string, embedding: number[], embeddingModel: string, generationId: string | null, generationMode: AiGenerationMode | null) {
     const client = getSupabaseClient();
     if (!client) return null;
     const user = await ensureDatabaseUser();
@@ -92,7 +96,11 @@ class CloudProjectRepository {
     if (!projectId) return null;
     const { data: version, error: versionError } = await client.from('project_versions').insert({ project_id: projectId, owner_id: user.id, schema_version: project.version, document: structuredClone(project), source: 'export' }).select('id').single();
     if (versionError) throw versionError;
-    const { data, error } = await client.from('reel_memories').insert({ project_id: projectId, project_version_id: version.id, owner_id: user.id, content, embedding, embedding_model: embeddingModel, quality_score: 1 }).select('id').single();
+    const { data, error } = await client.from('reel_memories').insert({
+      project_id: projectId, project_version_id: version.id, owner_id: user.id, content,
+      embedding, embedding_model: embeddingModel, quality_score: 1,
+      source_generation_id: generationId, generation_mode: generationMode,
+    }).select('id').single();
     if (error) throw error;
     return data.id as string;
   }

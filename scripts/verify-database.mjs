@@ -59,7 +59,9 @@ const verifyWrites = async (client, ownerId) => {
     if (versionError) throw new Error(`project_versions write: ${versionError.message}`);
 
     const { data: generation, error: generationError } = await client.from('ai_generations').insert({
-      project_id: projectId, owner_id: ownerId, mode: 'project', model: 'llama3.2:latest', prompt: 'Temporary database verification prompt', response: { scenes: document.scenes },
+      project_id: projectId, owner_id: ownerId, mode: 'project', model: 'llama3.2:latest',
+      prompt_version: 'reelmaker-v2', prompt: 'Temporary database verification prompt',
+      response: { scenes: document.scenes, warnings: [] },
     }).select('id').single();
     if (generationError) throw new Error(`ai_generations write: ${generationError.message}`);
 
@@ -72,6 +74,7 @@ const verifyWrites = async (client, ownerId) => {
       project_id: projectId, project_version_id: version.id, owner_id: ownerId,
       content: 'Temporary ReelMaker database verification memory', embedding: Array(EMBEDDING_DIMENSIONS).fill(0),
       embedding_model: 'embeddinggemma:latest', quality_score: 1,
+      source_generation_id: generation.id, generation_mode: 'project',
     });
     if (memoryError) throw new Error(`reel_memories write: ${memoryError.message}`);
     pass('Owner-scoped writes succeeded across projects, versions, AI generations, feedback, and memories');
@@ -136,7 +139,8 @@ const main = async () => {
     pass(`Database migration is available (${REQUIRED_TABLES.length} owner-scoped tables)`);
 
     const { error: memoryError } = await client.rpc('match_reel_memories', {
-      query_embedding: Array(EMBEDDING_DIMENSIONS).fill(0), query_model: 'embeddinggemma:latest', match_count: 1,
+      query_embedding: Array(EMBEDDING_DIMENSIONS).fill(0), query_model: 'embeddinggemma:latest',
+      query_template: 'signal', query_mode: 'project', minimum_similarity: 0.72, match_count: 1,
     });
     if (memoryError) throw new Error(`match_reel_memories: ${memoryError.message}`);
     pass(`pgvector memory search accepts ${EMBEDDING_DIMENSIONS}-dimension embeddings`);

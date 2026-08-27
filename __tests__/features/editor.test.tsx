@@ -48,6 +48,7 @@ describe('editor', () => {
         { title: 'Brewed for\nafter dark.', subtitle: 'A bolder coffee for the hours when ideas refuse to sleep.', accent: '#22c55e', background: '#0a0a0a', alignment: 'center', duration: 6, animation: 'rise' },
         { title: 'Make the night yours.', subtitle: 'Available now.', accent: '#faff69', background: '#172554', alignment: 'left', duration: 4, animation: 'scale' },
       ],
+      warnings: [],
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       message: { role: 'assistant', content: JSON.stringify(suggestion) },
@@ -79,7 +80,7 @@ describe('editor', () => {
   });
 
   it('lets AI rewrite only the selected manual scene', async () => {
-    const suggestion = { scenes: [{ title: 'A sharper second beat', subtitle: 'Rewritten locally.', accent: '#3b82f6', background: '#172554', alignment: 'left', duration: 5, animation: 'slide-left' }] };
+    const suggestion = { scenes: [{ title: 'A sharper second beat', subtitle: 'Rewritten locally.', accent: '#3b82f6', background: '#172554', alignment: 'left', duration: 5, animation: 'slide-left' }], warnings: [] };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: { role: 'assistant', content: JSON.stringify(suggestion) } }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
     const user = userEvent.setup();
     render(<EditorScreen templateId="signal" />);

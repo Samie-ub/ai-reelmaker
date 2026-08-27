@@ -47,4 +47,36 @@ describe('cloud project repository', () => {
       generation_id: 'generation-1', owner_id: 'owner-1', outcome: 'exported', edited_fields: [], rating: null,
     });
   });
+
+  it('stores prompt provenance with a generation', async () => {
+    const project = createProject(templates[0], 123);
+    vi.spyOn(cloudProjectRepository, 'saveProject').mockResolvedValue('project-1');
+    const single = vi.fn().mockResolvedValue({ data: { id: 'generation-1' }, error: null });
+    const select = vi.fn(() => ({ single }));
+    const insert = vi.fn(() => ({ select }));
+    supabaseMocks.getSupabaseClient.mockReturnValue({ from: vi.fn(() => ({ insert })) });
+    const result = {
+      model: 'llama3.2:latest' as const,
+      promptVersion: 'reelmaker-v2' as const,
+      suggestion: { scenes: project.scenes.map((scene) => ({
+        title: scene.title, subtitle: scene.subtitle, accent: scene.accent, background: scene.background,
+        alignment: scene.alignment, duration: scene.duration, animation: scene.animation,
+      })), warnings: [] },
+    };
+
+    await expect(cloudProjectRepository.recordGeneration(project, 'project', 'Create a launch', result)).resolves.toBe('generation-1');
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'llama3.2:latest', prompt_version: 'reelmaker-v2', response: result.suggestion,
+    }));
+  });
+
+  it('passes relevance filters to owner-scoped memory retrieval', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [{ content: 'Relevant', similarity: 0.82 }], error: null });
+    supabaseMocks.getSupabaseClient.mockReturnValue({ rpc });
+
+    await expect(cloudProjectRepository.findMemories([0.1], 'embeddinggemma:latest', 'signal', 'scene')).resolves.toEqual([{ content: 'Relevant', similarity: 0.82 }]);
+    expect(rpc).toHaveBeenCalledWith('match_reel_memories', expect.objectContaining({
+      query_template: 'signal', query_mode: 'scene', minimum_similarity: 0.72, match_count: 4,
+    }));
+  });
 });

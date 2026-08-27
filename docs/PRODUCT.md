@@ -111,6 +111,8 @@ ReelMaker gives content creators and hands-on video editors a fast, controlled p
 
 Data flows from immutable templates into a validated `ReelProject` containing one to eight ordered scenes. The editor and Ollama adapter both produce the same scene contract. The editor owns transient state, saves through the persistence adapter, and passes the same project into the Remotion composition and export renderer. No UI component reads storage directly.
 
+AI generation sits behind a typed orchestration boundary. Full-reel and selected-scene requests carry explicit operation modes, current project context, a versioned capability prompt, and separately marked retrieval references. Each mode has its own output cardinality rules, followed by semantic validation before the result can replace editor state. Generation lineage is associated with the applied scene revision so later edits and exports can be attributed without global in-memory state. See [`AI_WORKFLOW.md`](AI_WORKFLOW.md) for the complete request and evaluation contract.
+
 ### Security and data boundaries
 
 - Trust boundaries: URL template identifiers, localStorage JSON, user text, browser media APIs, and downloaded filenames.

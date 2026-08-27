@@ -1,4 +1,5 @@
 import migration from '../../supabase/migrations/20260826000000_reelmaker_learning.sql?raw';
+import aiWorkflowMigration from '../../supabase/migrations/20260827000000_ai_workflow_foundation.sql?raw';
 
 describe('database migration', () => {
   it('creates the project, history, feedback, and vector memory tables', () => {
@@ -20,5 +21,13 @@ describe('database migration', () => {
   it('enforces ownership through composite foreign keys', () => {
     expect(migration).toContain('foreign key (generation_id, owner_id)');
     expect(migration).toContain('foreign key (project_version_id, owner_id)');
+  });
+
+  it('versions prompts and filters retrieval by similarity, template, and generation mode', () => {
+    expect(aiWorkflowMigration).toContain('add column prompt_version');
+    expect(aiWorkflowMigration).toContain('source_generation_id');
+    expect(aiWorkflowMigration).toContain('projects.template_id = query_template');
+    expect(aiWorkflowMigration).toContain('memories.generation_mode = query_mode');
+    expect(aiWorkflowMigration).toContain('>= minimum_similarity');
   });
 });

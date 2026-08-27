@@ -2,6 +2,7 @@ import { AlignCenter, AlignLeft, ArrowDown, ArrowUp, Check, ChevronDown, Copy, D
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { navigate } from '../../navigation';
+import type { AiGenerationRequest } from '../../domain/aiSuggestion';
 import { ACCENTS, ANIMATIONS, BACKGROUNDS, createProject, createScene, getProjectDuration, getTemplate, projectSchema, reelSceneSchema, type ReelProject, type ReelScene } from '../../domain/project';
 import { projectRepository } from '../../infrastructure/projectRepository';
 import { generateReelSuggestion } from '../../infrastructure/ollamaReelGenerator';
@@ -30,7 +31,9 @@ export function EditorScreen({ templateId }: { templateId: string }) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiState, setAiState] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ status: 'idle' });
   const playerRef = useRef<PlayerRef>(null);
+  const projectRef = useRef(project);
   const resetDialogRef = useRef<HTMLDialogElement>(null);
+  projectRef.current = project;
 
   const parsed = project ? projectSchema.safeParse(project) : null;
   const scene = project?.scenes.find((item) => item.id === selectedSceneId) ?? project?.scenes[0] ?? null;
@@ -143,21 +146,34 @@ export function EditorScreen({ templateId }: { templateId: string }) {
     if (!aiPrompt.trim() || aiState.status === 'loading') return;
     setAiState({ status: 'loading' });
     try {
-      const brief = mode === 'scene'
-        ? `Create exactly one replacement scene based on this request: ${aiPrompt}. Current scene headline: ${scene.title}. Keep it coherent with the surrounding reel.`
-        : aiPrompt;
-      const suggestion = await generateReelSuggestion(await aiMemory.enrichBrief(brief), project.templateId);
-      void aiMemory.recordGeneration(project, mode, aiPrompt, suggestion);
+      const requestProject = project;
+      const memories = await aiMemory.findRelevantMemories(aiPrompt, requestProject.templateId, mode);
+      const generationRequest: AiGenerationRequest = mode === 'scene'
+        ? { mode, userPrompt: aiPrompt, project: requestProject, selectedSceneId: scene.id, memories }
+        : { mode, userPrompt: aiPrompt, project: requestProject, memories };
+      const result = await generateReelSuggestion(generationRequest);
+      const current = projectRef.current;
+      if (!current) throw new Error('The project is no longer available.');
+      let nextProject: ReelProject;
       if (mode === 'scene') {
-        const replacement = { id: scene.id, ...suggestion.scenes[0] };
-        setProject((current) => current ? { ...current, scenes: current.scenes.map((item) => item.id === scene.id ? replacement : item), updatedAt: Date.now() } : current);
-        playerRef.current?.seekTo(sceneStartFrame(selectedIndex));
-        setAiState({ status: 'success', message: 'Selected scene rewritten and remains fully editable.' });
+        const currentIndex = current.scenes.findIndex((item) => item.id === scene.id);
+        if (currentIndex < 0) throw new Error('The selected scene changed while AI was working. Try again.');
+        const replacement = { id: scene.id, ...result.suggestion.scenes[0] };
+        nextProject = { ...current, scenes: current.scenes.map((item) => item.id === scene.id ? replacement : item), updatedAt: Date.now() };
+        playerRef.current?.seekTo(current.scenes.slice(0, currentIndex).reduce((total, item) => total + item.duration * 30, 0));
       } else {
-        const scenes = suggestion.scenes.map((creative) => createScene(creative));
-        setProject((current) => current ? { ...current, scenes, updatedAt: Date.now() } : current); setSelectedSceneId(scenes[0].id); playerRef.current?.seekTo(0);
-        setAiState({ status: 'success', message: `${scenes.length} editable AI scene${scenes.length === 1 ? '' : 's'} applied.` });
+        const scenes = result.suggestion.scenes.map((creative) => createScene(creative));
+        nextProject = { ...current, scenes, updatedAt: Date.now() };
+        setSelectedSceneId(scenes[0].id);
+        playerRef.current?.seekTo(0);
       }
+      const generationId = await aiMemory.recordGeneration(nextProject, mode, aiPrompt, result);
+      aiMemory.trackAppliedGeneration(nextProject, generationId, mode);
+      setProject(nextProject);
+      const baseMessage = mode === 'scene'
+        ? 'Selected scene rewritten and remains fully editable.'
+        : `${nextProject.scenes.length} editable AI scene${nextProject.scenes.length === 1 ? '' : 's'} applied.`;
+      setAiState({ status: 'success', message: result.suggestion.warnings.length ? `${baseMessage} ${result.suggestion.warnings.join(' ')}` : baseMessage });
     } catch (error) { setAiState({ status: 'error', message: error instanceof Error ? error.message : 'Could not generate this reel.' }); }
   };
 
